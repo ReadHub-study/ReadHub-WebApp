@@ -1,24 +1,25 @@
 import dotenv from 'dotenv'
 dotenv.config()
-import Sib from 'sib-api-v3-sdk'
+import Brevo from '@getbrevo/brevo'
 import VerificationCode from '../models/Verify-user.js'
 
-const client = Sib.ApiClient.instance
-const apiKey = client.authentications['api-key']
-apiKey.apiKey = process.env.SENDINBLUE_API_KEY
+const apiInstance = new Brevo.TransactionalEmailsApi()
 
-const tranEmailApi = new Sib.TransactionalEmailsApi()
+apiInstance.setApiKey(
+  Brevo.TransactionalEmailsApiApiKeys.apiKey,
+  process.env.BREVO_API_KEY,
+)
 
 function generateCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString() // 6-digit code
+  return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
 export async function sendVerificationEmail(email, fullName) {
   try {
+    // Delete existing code
     await VerificationCode.findOneAndDelete({ email })
 
     const code = generateCode()
-
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
 
     await VerificationCode.create({
@@ -27,19 +28,32 @@ export async function sendVerificationEmail(email, fullName) {
       expiresAt,
     })
 
-    await tranEmailApi.sendTransacEmail({
-      sender: { email: process.env.EMAIL_FROM, name: 'ReadHub App' },
-      to: [{ email, name: fullName }],
-      templateId: parseInt(process.env.SENDINBLUE_TEMPLATE_ID),
+    const sendSmtpEmail = {
+      sender: {
+        email: process.env.EMAIL_FROM,
+        name: 'ReadHub App',
+      },
+      to: [
+        {
+          email,
+          name: fullName,
+        },
+      ],
+      templateId: Number(process.env.BREVO_TEMPLATE_ID),
       params: {
         FIRSTNAME: fullName,
         CODE: code,
       },
-    })
+    }
+
+    await apiInstance.sendTransacEmail(sendSmtpEmail)
 
     return { success: true }
   } catch (error) {
-    console.error('Error sending verification email:', error)
+    console.error(
+      'Error sending verification email:',
+      error.response?.body || error.message,
+    )
     return { success: false, error: error.message }
   }
 }
