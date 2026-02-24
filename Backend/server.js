@@ -44,6 +44,7 @@ app.use('/api/waitlist', waitList)
 // app.use('/api/reviews', reviewRoutes)
 
 const PORT = process.env.PORT || 5000
+console.log('MONGODB_URI:', process.env.MONGODB_URI)
 
 app.listen(PORT, async () => {
   await connectDB()

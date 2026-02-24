@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 
-const WaitListSchema = new mongoose.Schema(
+const waitListSchema = new mongoose.Schema(
   {
     email: {
       type: String,
