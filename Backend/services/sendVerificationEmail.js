@@ -1,14 +1,7 @@
 import dotenv from 'dotenv'
 dotenv.config()
-import Brevo from '@getbrevo/brevo'
+
 import VerificationCode from '../models/Verify-user.js'
-
-const apiInstance = new Brevo.TransactionalEmailsApi()
-
-apiInstance.setApiKey(
-  Brevo.TransactionalEmailsApiApiKeys.apiKey,
-  process.env.BREVO_API_KEY,
-)
 
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000).toString()
@@ -16,7 +9,6 @@ function generateCode() {
 
 export async function sendVerificationEmail(email, fullName) {
   try {
-    // Delete existing code
     await VerificationCode.findOneAndDelete({ email })
 
     const code = generateCode()
@@ -28,32 +20,34 @@ export async function sendVerificationEmail(email, fullName) {
       expiresAt,
     })
 
-    const sendSmtpEmail = {
-      sender: {
-        email: process.env.EMAIL_FROM,
-        name: 'ReadHub App',
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
       },
-      to: [
-        {
-          email,
-          name: fullName,
+      body: JSON.stringify({
+        sender: {
+          email: process.env.EMAIL_FROM,
+          name: 'ReadHub App',
         },
-      ],
-      templateId: Number(process.env.BREVO_TEMPLATE_ID),
-      params: {
-        FIRSTNAME: fullName,
-        CODE: code,
-      },
-    }
+        to: [{ email, name: fullName }],
+        templateId: Number(process.env.BREVO_TEMPLATE_ID),
+        params: {
+          FIRSTNAME: fullName,
+          CODE: code,
+        },
+      }),
+    })
 
-    await apiInstance.sendTransacEmail(sendSmtpEmail)
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(JSON.stringify(errorData))
+    }
 
     return { success: true }
   } catch (error) {
-    console.error(
-      'Error sending verification email:',
-      error.response?.body || error.message,
-    )
+    console.error('Error sending verification email:', error.message)
     return { success: false, error: error.message }
   }
 }
