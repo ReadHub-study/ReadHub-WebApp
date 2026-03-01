@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ReadHubImages } from '../../assets/asset';
 import { useNavigate } from 'react-router-dom';
 import ProfilePhotoSelector from '../../Components/ProfilePhotoSelector';
-import { apiEndpoints, CLOUDINARY_NAME } from '../../Util/apiEndpoints';
+import { apiEndpoints } from '../../Util/apiEndpoints';
 import axiosConfig from '../../Util/axiosConfig';
 
 const Profile = () => {
@@ -47,7 +47,13 @@ const Profile = () => {
             formData.append('signature', signatureData.signature);
             formData.append('folder', signatureData.folder);
 
-            const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_NAME}/image/upload`;
+            // cloudName might not be available in env (especially in production), use the value returned by backend
+            const cloudName = signatureData.cloudName || '';
+            if (!cloudName) {
+                throw new Error('Cloudinary cloud name not provided by backend');
+            }
+
+            const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
             const { data: cloudinaryData } = await axios.post(cloudinaryUrl, formData);
 
             const newProfilePicture = cloudinaryData.secure_url;
@@ -60,7 +66,14 @@ const Profile = () => {
             setUser(updatedUserData.updatedUser);
             setImage(newProfilePicture);
         } catch (error) {
+            // distinguish between authentication and cloudinary errors
             console.error('Error uploading image:', error);
+            if (error.response && error.response.status === 401) {
+                // if backend returned 401 while getting signature or refresh logic kicked in,
+                // force logout so the user can re-authenticate
+                console.warn('Unauthorized while uploading image, redirecting to login');
+                handleLogout();
+            }
         }
     };
 
