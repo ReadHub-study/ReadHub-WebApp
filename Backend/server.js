@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.routes.js'
 // import cookieParser from 'cookie-parser'
 import userProfile from './routes/userProfile.route.js'
 import cloudinaryRoutes from './routes/cloudinary-uploads.route.js'
+import waitList from './routes/waitlist.route..js'
 // import bookRoutes from './routes/bookRoutes.js'
 // import reviewRoutes from './routes/reviewRoutes.js'
 
@@ -16,7 +17,7 @@ dotenv.config()
 const app = express()
 
 // Middleware
-const allowedOrigin = process.env.FRONTEND_URL
+const allowedOrigin = [process.env.FRONTEND_URL, process.env.WAITLIST_URL]
 
 app.use(
   cors({
@@ -38,6 +39,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/profile', userProfile)
 app.use('/api/cloudinary-signature', cloudinaryRoutes)
+app.use('/api/waitlist', waitList)
 // app.use('/api/books', bookRoutes)
 // app.use('/api/reviews', reviewRoutes)
 
