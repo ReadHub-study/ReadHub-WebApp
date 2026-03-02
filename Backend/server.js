@@ -9,7 +9,7 @@ import authRoutes from './routes/auth.routes.js'
 import userProfile from './routes/userProfile.route.js'
 import cloudinaryRoutes from './routes/cloudinary-uploads.route.js'
 import waitList from './routes/waitlist.route..js'
-// import bookRoutes from './routes/bookRoutes.js'
+import bookRoutes from './routes/book.route.js'
 // import reviewRoutes from './routes/reviewRoutes.js'
 
 dotenv.config()
@@ -40,7 +40,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/profile', userProfile)
 app.use('/api/cloudinary-signature', cloudinaryRoutes)
 app.use('/api/waitlist', waitList)
-// app.use('/api/books', bookRoutes)
+app.use('/api/book', bookRoutes)
 // app.use('/api/reviews', reviewRoutes)
 
 const PORT = process.env.PORT || 5000
