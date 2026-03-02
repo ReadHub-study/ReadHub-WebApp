@@ -17,7 +17,4 @@ export const apiEndpoints = {
     DELETE_PROFILE: "/profile/delete",
     UPDATE_PROFILE: "/profile/update",
     CLOUDINARY_SIGNATURE: "/cloudinary-signature/image",
-    UPLOAD_IMAGE: CLOUDINARY_NAME
-      ? `https://api.cloudinary.com/v1_1/${CLOUDINARY_NAME}/image/upload`
-      : "",
-}
+};
