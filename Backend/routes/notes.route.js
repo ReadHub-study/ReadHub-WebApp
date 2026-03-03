@@ -4,9 +4,8 @@ import {
   deleteNote,
   getAllNotes,
   getNoteById,
-  updateNote,
 } from '../controllers/notes.controller.js'
-import { authenticate } from './../middlewares/auth.middleware'
+import { authenticate } from './../middlewares/auth.middleware.js'
 
 const router = express.Router()
 

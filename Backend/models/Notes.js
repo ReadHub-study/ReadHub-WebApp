@@ -23,3 +23,7 @@ const noteSchema = new mongoose.Schema(
   },
   { timestamps: true },
 )
+
+const Notes = mongoose.model('Notes', noteSchema)
+
+export default Notes
