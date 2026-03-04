@@ -31,7 +31,6 @@ app.use(bodyParser.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 app.use(morgan('dev'))
-app.use('/api', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // Test route
 app.get('/', (req, res) => {
@@ -39,6 +38,7 @@ app.get('/', (req, res) => {
 })
 
 // Routes
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 app.use('/api/auth', authRoutes)
 app.use('/api/profile', userProfile)
 app.use('/api/cloudinary-signature', cloudinaryRoutes)
