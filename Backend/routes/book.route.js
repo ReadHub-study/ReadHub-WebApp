@@ -53,7 +53,7 @@ const router = express.Router()
 router.post('/upload', authenticate, uploadBook)
 /**
  * @swagger
- * /api/books:
+ * /api/book:
  *   get:
  *     summary: Get all books uploaded by the logged-in user
  *     tags: [Books]
@@ -68,7 +68,7 @@ router.post('/upload', authenticate, uploadBook)
 router.get('/', authenticate, getBooks)
 /**
  * @swagger
- * /api/books/{bookId}:
+ * /api/book/{bookId}:
  *   put:
  *     summary: Update book reading progress or status
  *     tags: [Books]
@@ -105,7 +105,7 @@ router.get('/', authenticate, getBooks)
 router.put('/:bookId', authenticate, updateBookProgress)
 /**
  * @swagger
- * /api/books/status:
+ * /api/book/status:
  *   get:
  *     summary: Get books grouped by reading and completed status
  *     tags: [Books]
@@ -120,7 +120,7 @@ router.put('/:bookId', authenticate, updateBookProgress)
 router.get('/status', authenticate, bookStatus)
 /**
  * @swagger
- * /api/books/{bookId}:
+ * /api/book/{bookId}:
  *   delete:
  *     summary: Delete a book uploaded by the logged-in user
  *     tags: [Books]

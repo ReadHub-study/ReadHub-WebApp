@@ -10,7 +10,7 @@ const router = express.Router()
 
 /**
  * @swagger
- * /api/users/update:
+ * /api/profile/update:
  *   patch:
  *     summary: Update logged-in user's profile
  *     tags: [Users]
@@ -46,7 +46,7 @@ router.patch('/update', authenticate, updateUserProfile)
 
 /**
  * @swagger
- * /api/users/:
+ * /api/profile/:
  *   get:
  *     summary: Get logged-in user's profile
  *     tags: [Users]
@@ -64,7 +64,7 @@ router.get('/', authenticate, getUserProfile)
 
 /**
  * @swagger
- * /api/users/delete:
+ * /api/profile/delete:
  *   delete:
  *     summary: Delete logged-in user's profile
  *     tags: [Users]
