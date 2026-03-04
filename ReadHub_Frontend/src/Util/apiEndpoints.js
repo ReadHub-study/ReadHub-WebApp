@@ -1,6 +1,9 @@
 export const baseURL = "https://readhub-study.onrender.com/api/";
 export const CLOUDINARY_NAME = import.meta.env.VITE_CLOUDINARY_NAME;
 
+export const getCloudinaryUploadUrl = (cloudName) =>
+  `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+
 export const apiEndpoints = {
     LOGIN: "auth/login",
     REGISTER: "auth/register",
@@ -14,5 +17,4 @@ export const apiEndpoints = {
     DELETE_PROFILE: "/profile/delete",
     UPDATE_PROFILE: "/profile/update",
     CLOUDINARY_SIGNATURE: "/cloudinary-signature/image",
-    UPLOAD_IMAGE: `https://api.cloudinary.com/v1_1/${CLOUDINARY_NAME}/image/upload`,
-}
+};
