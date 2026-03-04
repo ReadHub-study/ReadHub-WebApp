@@ -17,6 +17,8 @@ const Settings = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [readingGoal, setReadingGoal] = useState(60);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
 
     useEffect(() => {
@@ -67,6 +69,26 @@ const Settings = () => {
             });
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        setIsDeleting(true);
+        try {
+            await axiosConfig.delete(apiEndpoints.DELETE_PROFILE);
+            setMessage({ type: 'success', text: 'Account deleted successfully!' });
+            setShowDeleteModal(false);
+            setTimeout(() => {
+                navigate('/');
+            }, 2000);
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            setMessage({ 
+                type: 'error', 
+                text: error.response?.data?.error || 'Failed to delete account' 
+            });
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -206,7 +228,7 @@ const Settings = () => {
                     </div>
          </div>
 
-         <div className="card mt-10 justify-center items-center border border-gray-300 rounded-lg p-3 flex flex-row gap-3">
+         <div className="card mt-10 justify-center items-center border border-gray-300 rounded-lg p-3 flex flex-row gap-3 cursor-pointer hover:bg-red-50" onClick={() => setShowDeleteModal(true)}>
              <span><img src={ReadHubImages.deleteIcon} alt="" /></span>
              <span className='text-red-600'>Delete Account</span>
         </div>
@@ -218,6 +240,33 @@ const Settings = () => {
                     : 'bg-red-100 text-red-700'
             }`}>
                 {message.text}
+            </div>
+        )}
+
+        {showDeleteModal && (
+            <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
+                <div className='bg-white rounded-xl p-8 max-w-sm mx-4 shadow-lg'>
+                    <h2 className='text-2xl font-bold text-gray-800 mb-4'>Delete Account</h2>
+                    <p className='text-gray-600 mb-6'>
+                        Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.
+                    </p>
+                    <div className='flex gap-3'>
+                        <button 
+                            onClick={() => setShowDeleteModal(false)}
+                            disabled={isDeleting}
+                            className='flex-1 bg-gray-300 rounded-xl p-3 font-medium text-gray-700 hover:bg-gray-400 disabled:bg-gray-200'
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onClick={handleDeleteAccount}
+                            disabled={isDeleting}
+                            className='flex-1 bg-red-600 rounded-xl p-3 font-medium text-white hover:bg-red-700 disabled:bg-gray-400'
+                        >
+                            {isDeleting ? 'Deleting...' : 'Delete'}
+                        </button>
+                    </div>
+                </div>
             </div>
         )}
 
