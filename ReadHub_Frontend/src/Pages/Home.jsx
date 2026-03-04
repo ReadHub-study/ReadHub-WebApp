@@ -2,11 +2,28 @@ import React, { useState } from "react";
 import ContCard from "../Components/ContCard";
 import { useNavigate } from "react-router-dom";
 import { useFiles } from "../Context/FileContext";
+import { useEffect } from "react";
+import { apiEndpoints } from "../Util/apiEndpoints";
+import axiosConfig from "../Util/axiosConfig";
 
 const Home = () => {
   const navigate = useNavigate();
   const [continueRead, setContinueRead] = useState(false);
   const { files, getProgress, selectFile } = useFiles();
+  const [user, setUser] = useState(null);
+
+  // for fetching the user details so that it displays the username
+  useEffect(() => {
+          const fetchUserProfile = async () => {
+              try {
+                  const { data } = await axiosConfig.get(apiEndpoints.USER_PROFILE);
+                  setUser(data.user);
+              } catch (error) {
+                  console.error('Error fetching user profile:', error);
+              }
+          };
+          fetchUserProfile();
+      }, []);
 
   const openPdf = (file) => {
     selectFile(file);
@@ -31,7 +48,7 @@ const Home = () => {
               Welcome back
             </p>
             <p className="text-tittle_Large font-medium xsm:text-[18px]">
-              ReadHub
+              {user.name}
             </p>
           </span>
         </div>
