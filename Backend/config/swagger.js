@@ -10,7 +10,7 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:5000',
+        url: 'https://readhub-study.onrender.com',
       },
     ],
     components: {
@@ -28,7 +28,7 @@ const options = {
         description: 'Authentication related endpoints',
       },
       {
-        name: 'User Profile',
+        name: 'User',
         description: 'Endpoints for user profile management',
       },
       {
