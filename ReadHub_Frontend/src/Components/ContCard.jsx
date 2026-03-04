@@ -40,7 +40,7 @@ const ContCard = ({
             onClick={() => {
               handleDelete(file.id, file.metadata?.title || file.name);
             }}
-            className="absolute right-0 top-3.5 stroke-red-600 bg-white"
+            className={`absolute right-0 top-3.5 stroke-red-600 bg-white ${""}`}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
