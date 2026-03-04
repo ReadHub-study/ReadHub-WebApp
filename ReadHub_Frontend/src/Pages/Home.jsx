@@ -48,7 +48,7 @@ const Home = () => {
               Welcome back
             </p>
             <p className="text-tittle_Large font-medium xsm:text-[18px]">
-              {user ? user.name : "Reader"}
+              {user ? user.username : "Reader"}
             </p>
           </span>
         </div>
