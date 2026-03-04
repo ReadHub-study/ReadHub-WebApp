@@ -3,10 +3,10 @@ import React from "react";
 const Notes = () => {
   return (
     <div>
-      <div className="px-[16px] pt-[40px] overflow-hidden mb-15">
+      <div className="px-[16px] pt-[40px] overflow-hidden mb-15 opacity-60">
         <div className="flex justify-between mb-8 items-center">
           <p className="text-black text-tittle_Large">Highlights & Notes</p>
-          <span className="flex w-[40px] h-[40px] rounded-[8.04] bg-white"></span>
+          <span className="flex w-[40px] h-[40px] rounded-[8.04] bg-white opacity-0"></span>
         </div>
 
         <div className="bg-white h-[46px] w-full flex rounded-[11px] mb-4">
@@ -15,6 +15,7 @@ const Notes = () => {
             type="text"
             placeholder="Search highlights..."
             className="outline-0 w-full"
+            style={{ backgroundColor: "white", border: "0px" }}
           />
         </div>
 
