@@ -1,7 +1,24 @@
-import React from "react";
+import React, { useState } from "react";
 import ContCard from "../Components/ContCard";
+import { useNavigate } from "react-router-dom";
+import { useFiles } from "../Context/FileContext";
 
 const Home = () => {
+  const navigate = useNavigate();
+  const [continueRead, setContinueRead] = useState(false);
+  const { files, getProgress, selectFile } = useFiles();
+
+  const openPdf = (file) => {
+    selectFile(file);
+    navigate(`/viewpdf/${file.id}`);
+  };
+
+  function filterBooks(books) {
+    return books.filter((b) => b.currentPage > 0 && b.currentPage < b.numPages);
+  }
+
+  const filtered = filterBooks(files);
+
   return (
     <div className="pb-30">
       <div className="flex pt-13 pb-[26px] justify-between items-center px-[16px]">
@@ -19,14 +36,14 @@ const Home = () => {
           </span>
         </div>
         <div>
-          <div className="w-fit h-[36px] bg-[#ff5800]/40 border-1 border-[#ff5b04] text-[#ff5b04] font-medium rounded-full flex justify-center items-center px-3 sm:px-[24px] xsm:text-[13px]">
+          <div className="w-fit h-[36px] bg-[#ff5800]/40 border-1 border-[#ff5b04] text-[#ff5b04] font-medium rounded-full flex justify-center items-center px-3 sm:px-[24px] xsm:text-[13px] opacity-80">
             7 day Reading streak{" "}
             <img src="/fire.svg" alt="fire" className="w-[24px] xsm:w-[16px]" />
           </div>
         </div>
       </div>
 
-      <div className="px-[16px] pb-[26px] xsm:text-[15px]">
+      <div className="px-[16px] pb-[26px] xsm:text-[15px] opacity-50">
         <div className="bg-primary min-h-[177px] rounded-[20px] relative overflow-hidden text-white px-[16px] py-[23px] flex flex-col justify-between">
           <span className="flex h-[100px] w-[100px] bg-white/20 rounded-full absolute left-72 top-[-30px]"></span>
           <span className="flex h-[100px] w-[100px] bg-white/20 rounded-full absolute top-30 left-[-40px]"></span>
@@ -50,8 +67,13 @@ const Home = () => {
       <div className="flex justify-between px-[16px] pb-5">
         <div>
           <div className="bg-white w-[79px] h-[80px] rounded-[15.89px] flex flex-col justify-center items-center">
-            <div className="bg-primary rounded-[8.45px] w-[42px] h-[42.53px] flex justify-center">
-              <img src="/library_books.svg" />
+            <div
+              className="bg-primary rounded-[8.45px] w-[42px] h-[42.53px] flex justify-center active:bg-primary/80"
+              onClick={() => {
+                navigate("/library");
+              }}
+            >
+              <img src="/library_books.svg" className="w-[24px]" />
             </div>
             <p className="text-[#4d4d4d] text-body_Small">Library</p>
           </div>
@@ -59,8 +81,13 @@ const Home = () => {
 
         <div>
           <div className="bg-white w-[79px] h-[80px] rounded-[15.89px] flex flex-col justify-center items-center">
-            <div className="bg-[#F59E0B] rounded-[8.45px] w-[42px] h-[42.53px] flex justify-center">
-              <img src="/note_stack.svg" />
+            <div
+              className="bg-[#F59E0B] rounded-[8.45px] w-[42px] h-[42.53px] flex justify-center active:bg-[#F59E0B]/80"
+              onClick={() => {
+                navigate("/notes");
+              }}
+            >
+              <img src="/note_stack.svg" className="w-[24px]" />
             </div>
             <p className="text-[#4d4d4d] text-body_Small">Notes</p>
           </div>
@@ -68,8 +95,8 @@ const Home = () => {
 
         <div>
           <div className="bg-white w-[79px] h-[80px] rounded-[15.89px] flex flex-col justify-center items-center">
-            <div className="bg-[#10B981] rounded-[8.45px] w-[42px] h-[42.53px] flex justify-center">
-              <img src="/lock_clock.svg" />
+            <div className="bg-[#10B981] rounded-[8.45px] w-[42px] h-[42.53px] flex justify-center opacity-70">
+              <img src="/lock_clock.svg" className="w-[24px]" />
             </div>
             <p className="text-[#4d4d4d] text-body_Small">Focus</p>
           </div>
@@ -77,8 +104,13 @@ const Home = () => {
 
         <div>
           <div className="bg-white w-[79px] h-[80px] rounded-[15.89px] flex flex-col justify-center items-center">
-            <div className="bg-[#A855F7] rounded-[8.45px] w-[42px] h-[42.53px] flex justify-center">
-              <img src="/explore.svg" />
+            <div
+              className="bg-[#A855F7] rounded-[8.45px] w-[42px] h-[42.53px] flex justify-center active:bg-[#A855F7]/80"
+              onClick={() => {
+                navigate("/explore");
+              }}
+            >
+              <img src="/explore.svg" className="w-[24px]" />
             </div>
             <p className="text-[#4d4d4d] text-body_Small">Explore</p>
           </div>
@@ -95,28 +127,43 @@ const Home = () => {
         </div>
       </div>
 
-      <div className="px-[16px]">
-        <div>
-          <p className="text-black font-semibold mb-5 ">Continue Reading</p>
+      {filtered.length > 0 ? (
+        <div className="px-4">
+          <div className="font-medium mb-5">Continue Reading</div>
+          {filtered.map((file) => (
+            <ContCard
+              key={file.id}
+              fileName={file.name}
+              page={file.currentPage || 0}
+              totalPage={
+                file.type === "pdf"
+                  ? file.numPages || 0
+                  : file.metadata?.totalPages
+              }
+              progress={getProgress(file)}
+              onOpen={() => {
+                file.type === "pdf" ? openPdf(file) : openEpub(file);
+              }}
+              progPercent={getProgress(file) + "%"}
+              continueRead={
+                file.currentPage < 1 ? "Start Reading" : "Continue Reading"
+              }
+              coverImage={file.coverImage}
+              file={file}
+            />
+          ))}
         </div>
-
-        <ContCard
-          fileName={"A broken people playlist"}
-          page={10}
-          totalPage={100}
-        ></ContCard>
-        <ContCard
-          fileName={"The power of habit"}
-          page={10}
-          totalPage={100}
-        ></ContCard>
-        <ContCard
-          fileName={"Atomic habits"}
-          page={20}
-          totalPage={100}
-        ></ContCard>
-        <ContCard fileName={"Deep work"} page={30} totalPage={100}></ContCard>
-      </div>
+      ) : (
+        <div className="flex px-4 pt-5 justify-center flex-col text-center">
+          <p>Nothing here for now...try reading some books</p>
+          <p className="mt-2">
+            Go to{" "}
+            <a href="/library" className="underline text-primary">
+              Library
+            </a>
+          </p>
+        </div>
+      )}
     </div>
   );
 };

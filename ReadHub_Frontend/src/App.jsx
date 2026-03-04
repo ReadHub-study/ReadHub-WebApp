@@ -24,6 +24,7 @@ import Pricing from "./Pages/Pricing/Pricing";
 import Profile from "./Pages/Profile/Profile";
 import Settings from "./Pages/Profile/Settings";
 import Statistics from "./Pages/Profile/Statistics";
+import ViewEpub from "./Features/ViewEpub";
 
 function App() {
   const location = useLocation();
@@ -44,10 +45,11 @@ function App() {
         <Route path="/explore" element={<Explore />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/pricing" element={<Pricing />} />
-        <Route path="/profile/settings" element={<Settings/>}/>
-        <Route path="/profile/statistics" element={<Statistics/>}/>
+        <Route path="/profile/settings" element={<Settings />} />
+        <Route path="/profile/statistics" element={<Statistics />} />
 
         <Route path="/viewpdf/:fileId" element={<ViewPdf />} />
+        <Route path="/viewepub/:fileId" element={<ViewEpub />} />
 
         <Route path="/" element={<OnboardingFirst />} />
         <Route path="/onboarding1" element={<OnboardingFirst />} />

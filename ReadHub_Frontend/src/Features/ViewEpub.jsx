@@ -1,114 +1,18 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
+import React, { useRef, useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useFiles } from "../Context/FileContext";
-import { Link, useParams, useNavigate } from "react-router-dom";
-import { useSwipeable } from "react-swipeable";
 
-import CustomTextViewer from "../Components/CustomTextViewer";
 import EpubReader from "../Components/EpubReader";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+const ViewEpub = () => {
+  const { selectedFile2 } = useFiles();
+  const readerRef = useRef(null);
 
-const ViewPdf = () => {
-  const { fileId } = useParams();
-
-  const { selectedFile2, updateCurrentPage, selectFile, files } = useFiles();
-
-  const [numPages, setNumPages] = useState(null);
-  const [pageNumber, setPageNumber] = useState(1);
-
-  const [viewMode, setViewMode] = useState("pdf"); // "pdf" or "text"
-
-  const navigate = useNavigate();
-
-  const [toggleSettings, setToggleSettings] = useState(true);
-
-  const [scale, setScale] = useState(0.5);
-  const [scaleFont, setScaleFont] = useState(14);
-
-  useEffect(() => {
-    if (fileId) {
-      const file = files.find((f) => f.id === fileId);
-      if (file) {
-        selectFile(file);
-      } else {
-        navigate("/library");
-      }
-    }
-  }, [fileId, files, selectFile, navigate]);
-
-  useEffect(() => {
-    if (selectedFile2?.currentPage) {
-      console.log("pdf View - Loading saved Page:", selectedFile2.currentPage);
-      setPageNumber(selectedFile2.currentPage);
-    }
-  }, [selectedFile2?.id, selectedFile2?.currentPage]);
-
-  useEffect(() => {
-    if (selectedFile2?.id && pageNumber) {
-      const timeoutId = setTimeout(() => {
-        updateCurrentPage(selectedFile2.id, pageNumber, "pdf-view");
-        console.log("pdf view - Saving page : ", pageNumber);
-      }, 500);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [pageNumber, selectedFile2?.id, viewMode]);
-
-  useEffect(() => {
-    if (
-      viewMode === "pdf" &&
-      selectedFile2?.currentPage &&
-      selectedFile2.currentPage !== pageNumber
-    ) {
-      console.log(
-        "pdf view - syncing from context: ",
-        selectedFile2.currentPage,
-      );
-    }
-  }, [viewMode, selectedFile2?.currentPage]);
-
-  const onDocumentLoadSuccess = ({ numPages }) => {
-    setNumPages(numPages);
-  };
-
-  const goToPrevPage = () => {
-    setPageNumber((prev) => Math.max(1, prev - 1));
-  };
-
-  const goToNextPage = () => {
-    setPageNumber((prev) => Math.min(numPages, prev + 1));
-  };
-
-  const jumpToPage = (page) => {
-    setPageNumber(page);
-  };
-
-  const swipeHandlers = useSwipeable({
-    onSwipedLeft: (eventData) => {
-      if (Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)) {
-        goToNextPage();
-      }
-    },
-    onSwipedRight: (eventData) => {
-      if (Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)) {
-        goToPrevPage();
-      }
-    },
-    preventScrollOnSwipe: false,
-    trackMouse: true,
-    delta: 190,
-  });
-
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [darkToggle, setDarkToggle] = useState(false);
-
-  const zoomIn = () => {
-    setScale((prev) => Math.min(prev + 0.5, 3));
-  };
-
-  const zoomOut = () => {
-    setScale((prev) => Math.max(prev - 0.5, 0.5));
-  };
+  const [toggleSettings, setToggleSettings] = useState(true);
+  const [scaleFont, setScaleFont] = useState(14);
 
   const increaseFont = () => {
     setScaleFont((prev) => Math.min(prev + 2, 30));
@@ -118,31 +22,16 @@ const ViewPdf = () => {
     setScaleFont((prev) => Math.max(prev - 2, 14));
   };
 
-  if (!selectedFile2 && fileId) {
-    return (
-      <div className="w-full h-full p-4">
-        <div className="text-center mt-20">
-          <p className="text-xl text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!selectedFile2) {
-    return (
-      <div className=" w-full h-full">
-        <Link to="/library">
-          <button className="flex items-center gap-1 mb-4">
-            <img src="/chevron-left.svg" />
-          </button>
-        </Link>
-        No file selected
-      </div>
-    );
-  }
+  const jumpToPage = (page) => {
+    if (readerRef.current) {
+      readerRef.current.goToLocation(page);
+      setPage();
+      setToggleSettings(true); // Close settings after jumping
+    }
+  };
   return (
     <div
-      className={`w-full h-full bg-fixed overflow-scroll ${darkToggle ? "bg-[#0B111E] text-[#ECF0F8]" : "bg-white text-[black]"}`}
+      className={`w-full h-full bg-fixed overflow-hidden   ${darkToggle ? "bg-[#0B111E] text-[#ECF0F8]" : "bg-white text-[black]"}`}
     >
       <div
         className={`flex justify-between p-4 w-full fixed z-10 items-center ${darkToggle ? "bg-[#0B111E] stroke-primary" : "bg-white stroke-[#1A1A1A]"}`}
@@ -178,7 +67,12 @@ const ViewPdf = () => {
               fill="none"
             >
               <path
-                d="M17 3C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V20C18.9999 20.1751 18.9539 20.3472 18.8665 20.4989C18.7791 20.6506 18.6533 20.7767 18.5019 20.8646C18.3504 20.9525 18.1785 20.9991 18.0034 20.9997C17.8283 21.0003 17.6561 20.9549 17.504 20.868L12.992 18.29C12.6899 18.1174 12.3479 18.0266 12 18.0266C11.6521 18.0266 11.3101 18.1174 11.008 18.29L6.496 20.868C6.34394 20.9549 6.17174 21.0003 5.99662 20.9997C5.8215 20.9991 5.64961 20.9525 5.49814 20.8646C5.34667 20.7767 5.22094 20.6506 5.13352 20.4989C5.0461 20.3472 5.00006 20.1751 5 20V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17Z"
+                d="M17 3C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V20C18.9999 20.1751 18.9539 
+                20.3472 18.8665 20.4989C18.7791 20.6506 18.6533 20.7767 18.5019 20.8646C18.3504 20.9525 18.1785 20.9991 18.0034 
+                20.9997C17.8283 21.0003 17.6561 20.9549 17.504 20.868L12.992 18.29C12.6899 18.1174 12.3479 18.0266 12 18.0266C11.6521 
+                18.0266 11.3101 18.1174 11.008 18.29L6.496 20.868C6.34394 20.9549 6.17174 21.0003 5.99662 20.9997C5.8215 20.9991 5.64961 
+                20.9525 5.49814 20.8646C5.34667 20.7767 5.22094 20.6506 5.13352 20.4989C5.0461 20.3472 5.00006 20.1751 5 20V5C5 4.46957 5.21071
+                 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17Z"
                 stroke-width="1.8"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -278,56 +172,27 @@ const ViewPdf = () => {
       <div className="top-15 relative">
         <div className="px-4 ">
           <h2 className="text-tittle_Medium font-medium text-[14px] leading-[20px] truncate">
-            {selectedFile2.name}
+            {selectedFile2.metadata?.title || selectedFile2.name}{" "}
+            {selectedFile2.metadata?.author &&
+              ` - ${selectedFile2.metadata.author}`}
           </h2>
           <h2 className="font-bold text-[20px] leading-[185%] pb-5">
-            Page {pageNumber} of {numPages}
+            Page {page} of {total || "?"}
           </h2>
         </div>
-        <div {...swipeHandlers}>
-          {/* Toggle between PDF and Text view */}
+        <div>
+          {/* view epub */}
 
-          {viewMode === "pdf" ? (
-            <div className=" flex justify-center overflow-hidden w-dvw">
-              <Document
-                file={selectedFile2.file}
-                onLoadSuccess={onDocumentLoadSuccess}
-                loading={<div>Loading PDF...</div>}
-                error={<div>Failed to load PDF.</div>}
-                className={`overflow-scroll`}
-              >
-                <Page
-                  pageNumber={pageNumber}
-                  renderAnnotationLayer={false}
-                  renderTextLayer={false}
-                  scale={scale}
-                  devicePixelRatio={window.devicePixelRatio}
-                />
-              </Document>
-            </div>
-          ) : (
-            <CustomTextViewer
-              fileData={selectedFile2.file}
-              file={selectedFile2}
-              theme={darkToggle}
-              scale={scaleFont}
-            />
-          )}
-        </div>
-
-        <div className="flex gap-4 mb-4 pt-5 justify-center">
-          <button
-            onClick={() => setViewMode("pdf")}
-            className={viewMode === "pdf" ? "text-primary" : ""}
-          >
-            PDF View
-          </button>
-          <button
-            onClick={() => setViewMode("text")}
-            className={viewMode === "text" ? "text-primary" : ""}
-          >
-            Text View
-          </button>
+          <EpubReader
+            ref={readerRef}
+            file={selectedFile2}
+            fontSize={scaleFont}
+            theme={darkToggle ? "dark" : "light"}
+            onLocationChange={({ current, total }) => {
+              setPage(current);
+              setTotal(total);
+            }}
+          />
         </div>
       </div>
 
@@ -365,87 +230,45 @@ const ViewPdf = () => {
           </div>
           <div className="">
             <div>
-              {viewMode === "pdf" && (
-                <div>
-                  <div
-                    className={`flex justify-between  font-medium text-[16px] mb-4 ${darkToggle ? "text-[#F5F9FF] " : "text-[#808080]]"}`}
-                  >
-                    <span className="flex">
-                      <p>T</p>
-                      <p className="pl-2">Zoom Size</p>
-                    </span>
+              <div>
+                <div
+                  className={`flex justify-between  font-medium text-[16px] mb-4 ${darkToggle ? "text-[#F5F9FF] " : "text-[#808080]]"}`}
+                >
+                  <span className="flex">
+                    <p>T</p>
+                    <p className="pl-2">Font Size</p>
+                  </span>
 
-                    <p>{scale}</p>
-                  </div>
-
-                  <div
-                    className={`flex justify-between items-center ${darkToggle ? "text-[#0653C6]" : "text-primary"}`}
-                  >
-                    <button
-                      className={`w-[50px] h-[40px] rounded-[12px] flex justify-center items-center ${darkToggle ? "bg-[#9CC3FC]" : "bg-light_primary"}`}
-                      onClick={zoomOut}
-                      disabled={scale === 0.6}
-                    >
-                      A-
-                    </button>
-                    <span className="flex h-[7px] bg-[#e6e6e6] rounded-[12px] relative w-[170px]">
-                      <span
-                        className={`h-[7px] rounded-full transition-all duration-300 ease-out ${darkToggle ? "bg-[#0653C6]" : "bg-primary"}`}
-                        style={{ width: `${Math.round((scale / 3) * 100)}%` }}
-                      ></span>
-                    </span>
-                    <button
-                      className={`w-[50px] h-[40px] rounded-[12px] flex justify-center items-center ${darkToggle ? "bg-[#9CC3FC]" : "bg-light_primary"}`}
-                      onClick={zoomIn}
-                      disabled={scale === 3.0}
-                    >
-                      A+
-                    </button>
-                  </div>
+                  <p>{scaleFont}px</p>
                 </div>
-              )}
 
-              {viewMode === "text" && (
-                <div>
-                  <div
-                    className={`flex justify-between  font-medium text-[16px] mb-4 ${darkToggle ? "text-[#F5F9FF] " : "text-[#808080]]"}`}
+                <div
+                  className={`flex justify-between items-center ${darkToggle ? "text-[#0653C6]" : "text-primary"}`}
+                >
+                  <button
+                    className={`w-[50px] h-[40px] rounded-[12px] flex justify-center items-center ${darkToggle ? "bg-[#9CC3FC]" : "bg-light_primary"}`}
+                    onClick={reduceFont}
+                    disabled={scaleFont === 14}
                   >
-                    <span className="flex">
-                      <p>T</p>
-                      <p className="pl-2">Font Size</p>
-                    </span>
-
-                    <p>{scaleFont}px</p>
-                  </div>
-
-                  <div
-                    className={`flex justify-between items-center ${darkToggle ? "text-[#0653C6]" : "text-primary"}`}
+                    A-
+                  </button>
+                  <span className="flex h-[7px] bg-[#e6e6e6] rounded-[12px] relative w-[170px]">
+                    <span
+                      className={`h-[7px] rounded-full transition-all duration-300 ease-out ${darkToggle ? "bg-[#0653C6]" : "bg-primary"}`}
+                      style={{
+                        width: `${Math.round((scaleFont / 30) * 100)}%`,
+                      }}
+                    ></span>
+                  </span>
+                  <button
+                    className={`w-[50px] h-[40px] rounded-[12px] flex justify-center items-center ${darkToggle ? "bg-[#9CC3FC]" : "bg-light_primary"}`}
+                    onClick={increaseFont}
+                    disabled={scaleFont === 30}
                   >
-                    <button
-                      className={`w-[50px] h-[40px] rounded-[12px] flex justify-center items-center ${darkToggle ? "bg-[#9CC3FC]" : "bg-light_primary"}`}
-                      onClick={reduceFont}
-                      disabled={scaleFont === 14}
-                    >
-                      A-
-                    </button>
-                    <span className="flex h-[7px] bg-[#e6e6e6] rounded-[12px] relative w-[170px]">
-                      <span
-                        className={`h-[7px] rounded-full transition-all duration-300 ease-out ${darkToggle ? "bg-[#0653C6]" : "bg-primary"}`}
-                        style={{
-                          width: `${Math.round((scaleFont / 30) * 100)}%`,
-                        }}
-                      ></span>
-                    </span>
-                    <button
-                      className={`w-[50px] h-[40px] rounded-[12px] flex justify-center items-center ${darkToggle ? "bg-[#9CC3FC]" : "bg-light_primary"}`}
-                      onClick={increaseFont}
-                      disabled={scaleFont === 30}
-                    >
-                      A+
-                    </button>
-                  </div>
+                    A+
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
           <div
@@ -453,15 +276,15 @@ const ViewPdf = () => {
           >
             <p className="mb-4">Pages</p>
             <div className="flex flex-col gap-[10px] h-fit overflow-scroll">
-              {Array.from({ length: numPages }, (_, i) => i + 1).map((page) => (
+              {Array.from({ length: total }, (_, i) => i + 1).map((pag) => (
                 <span
-                  key={page}
+                  key={pag}
                   onClick={() => {
-                    jumpToPage(page);
+                    jumpToPage(pag);
                   }}
-                  className={`w-full rounded-[10px] p-[10px] h-[44px] flex ${page === pageNumber && !darkToggle ? "bg-light_primary text-primary" : ""} ${page === pageNumber && darkToggle ? "text-[#0653C6] bg-[#9CC3FC]" : ""}`}
+                  className={`w-full rounded-[10px] p-[10px] h-[44px] flex ${pag === page && !darkToggle ? "bg-light_primary text-primary" : ""} ${pag === page && darkToggle ? "text-[#0653C6] bg-[#9CC3FC]" : ""}`}
                 >
-                  <p>Page {page}</p>
+                  <p>Page {pag}</p>
                 </span>
               ))}
             </div>
@@ -472,4 +295,4 @@ const ViewPdf = () => {
   );
 };
 
-export default ViewPdf;
+export default ViewEpub;

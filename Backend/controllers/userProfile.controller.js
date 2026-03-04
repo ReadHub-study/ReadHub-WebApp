@@ -3,34 +3,33 @@ import User from '../models/User.js'
 
 export const generatePictureSignature = async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ message: 'Unauthorized' })
+    if (!req.user.id) {
+      return res.status(401).json({ message: 'Unauthorized' })
+    }
 
-    const timestamp = Math.round(new Date().getTime() / 1000)
+    const timestamp = Math.round(Date.now() / 1000)
 
     const paramsToSign = {
       timestamp,
       folder: 'profile_pictures',
-      resource_type: 'image',
-      allowed_formats: 'jpg,jpeg,png,webp',
     }
 
     const signature = cloudinary.utils.api_sign_request(
-      {
-        timestamp,
-        folder: 'profile_pictures',
-      },
+      paramsToSign,
       process.env.CLOUDINARY_API_SECRET,
     )
 
-    res.json({
-      timestamp,
+    return res.json({
+      ...paramsToSign,
       signature,
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
       apiKey: process.env.CLOUDINARY_API_KEY,
-      folder: 'profile_pictures',
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
     })
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    return res.status(500).json({
+      message: 'Failed to generate signature',
+      error: error.message,
+    })
   }
 }
 

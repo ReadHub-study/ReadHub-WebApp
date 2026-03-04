@@ -3,14 +3,16 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import morgan from 'morgan'
 import bodyParser from 'body-parser'
+import swaggerUi from 'swagger-ui-express'
+import swaggerSpec from './config/swagger.js'
 import connectDB from './config/db.js'
 import authRoutes from './routes/auth.routes.js'
 // import cookieParser from 'cookie-parser'
 import userProfile from './routes/userProfile.route.js'
 import cloudinaryRoutes from './routes/cloudinary-uploads.route.js'
 import waitList from './routes/waitlist.route..js'
-// import bookRoutes from './routes/bookRoutes.js'
-// import reviewRoutes from './routes/reviewRoutes.js'
+import bookRoutes from './routes/book.route.js'
+import noteRoutes from './routes/notes.route.js'
 
 dotenv.config()
 
@@ -36,12 +38,13 @@ app.get('/', (req, res) => {
 })
 
 // Routes
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 app.use('/api/auth', authRoutes)
 app.use('/api/profile', userProfile)
 app.use('/api/cloudinary-signature', cloudinaryRoutes)
 app.use('/api/waitlist', waitList)
-// app.use('/api/books', bookRoutes)
-// app.use('/api/reviews', reviewRoutes)
+app.use('/api/book', bookRoutes)
+app.use('/api/notes', noteRoutes)
 
 const PORT = process.env.PORT || 5000
 
