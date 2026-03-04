@@ -3,6 +3,8 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import morgan from 'morgan'
 import bodyParser from 'body-parser'
+import swaggerUi from 'swagger-ui-express'
+import swaggerSpec from './config/swagger.js'
 import connectDB from './config/db.js'
 import authRoutes from './routes/auth.routes.js'
 // import cookieParser from 'cookie-parser'
@@ -29,6 +31,7 @@ app.use(bodyParser.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 app.use(morgan('dev'))
+app.use('/api', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // Test route
 app.get('/', (req, res) => {
