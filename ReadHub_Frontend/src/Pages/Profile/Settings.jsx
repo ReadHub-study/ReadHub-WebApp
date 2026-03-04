@@ -16,6 +16,7 @@ const Settings = () => {
     const [editedEmail, setEditedEmail] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [readingGoal, setReadingGoal] = useState(60);
 
 
     useEffect(() => {
@@ -118,6 +119,30 @@ const Settings = () => {
                     ) : (
                         <span className='border border-gray-300 px-4 py-3 w-full rounded-xl'>{user ? user.email : 'username@gmail.com'}</span>
                     )}
+                </div>
+            </div>
+        </div>
+
+        <div className="card bg-white p-4 flex flex-col justify-start items-start gap-7 mt-10 rounded-xl w-full">
+            <div className='flex flex-row gap-4 items-center justify-start'>
+                <span><img src={ReadHubImages.circlesIcon} alt="" /></span>
+                <span className='text-lg font-semibold'>Reading Goals</span>
+            </div>
+
+            <div className='flex flex-col gap-3 justify-start items-start w-full'>
+                <div className='flex flex-col w-full justify-between'>
+                    <span className='text-gray-800 text-sm font-normal'>Daily Reading Goals</span>
+                    <span className='text-gray-800 text-sm font-normal'>{readingGoal}mins</span>
+                </div>
+                <div className='slider w-full'>
+                    <input 
+                        type="range" 
+                        min="0" 
+                        max="60" 
+                        value={readingGoal}
+                        onChange={(e) => setReadingGoal(parseInt(e.target.value))}
+                        className='w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500'
+                    />
                 </div>
             </div>
         </div>
