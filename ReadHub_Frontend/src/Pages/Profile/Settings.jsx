@@ -125,12 +125,12 @@ const Settings = () => {
 
         <div className="card bg-white p-4 flex flex-col justify-start items-start gap-7 mt-10 rounded-xl w-full">
             <div className='flex flex-row gap-4 items-center justify-start'>
-                <span><img src={ReadHubImages.circlesIcon} alt="" /></span>
-                <span className='text-lg font-semibold'>Reading Goals</span>
+                <span><img className='invert-[0.5] sepia-[1] hue-rotate-[190deg] saturate-[500%]' src={ReadHubImages.circlesIcon} alt="" /></span>
+                <span className='text-2xl font-semibold'>Reading Goals</span>
             </div>
 
             <div className='flex flex-col gap-3 justify-start items-start w-full'>
-                <div className='flex flex-col w-full justify-between'>
+                <div className='flex flex-row w-full justify-between'>
                     <span className='text-gray-800 text-sm font-normal'>Daily Reading Goals</span>
                     <span className='text-gray-800 text-sm font-normal'>{readingGoal}mins</span>
                 </div>
