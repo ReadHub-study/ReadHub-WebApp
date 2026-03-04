@@ -1,10 +1,73 @@
 import React from 'react'
 import { ReadHubImages } from '../../assets/asset'
 import { useNavigate } from 'react-router-dom'
+import { useState } from 'react';
+import { useEffect } from 'react';
+import axiosConfig from '../../Util/axiosConfig';
+import { apiEndpoints } from '../../Util/apiEndpoints';
 
 const Settings = () => {
 
     const navigate = useNavigate();
+
+    const [user, setUser] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedUsername, setEditedUsername] = useState('');
+    const [editedEmail, setEditedEmail] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [message, setMessage] = useState({ type: '', text: '' });
+
+
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            try {
+                const { data } = await axiosConfig.get(apiEndpoints.USER_PROFILE);
+                setUser(data.user);
+                setEditedUsername(data.user.username);
+                setEditedEmail(data.user.email);
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+            }
+        };
+        fetchUserProfile();
+    }, []);
+
+    const handleEditToggle = () => {
+        if (user) {
+            setIsEditing(!isEditing);
+            setEditedUsername(user.username);
+            setEditedEmail(user.email);
+            setMessage({ type: '', text: '' });
+        }
+    };
+
+    const handleSaveSettings = async () => {
+        if (!editedUsername.trim() || !editedEmail.trim()) {
+            setMessage({ type: 'error', text: 'Username and email cannot be empty' });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const { data } = await axiosConfig.patch(apiEndpoints.UPDATE_PROFILE, {
+                username: editedUsername,
+                email: editedEmail,
+            });
+            
+            setUser(data.updatedUser);
+            setIsEditing(false);
+            setMessage({ type: 'success', text: 'Profile updated successfully!' });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            setMessage({ 
+                type: 'error', 
+                text: error.response?.data?.error || 'Failed to update profile' 
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
   return (
     <>
@@ -15,18 +78,46 @@ const Settings = () => {
         </div>
 
         <div className="card bg-white px-4 py-8 mt-5 rounded-xl flex justify-start items-start gap-7 flex-col">
-            <div className='flex flex-row gap-3 justify-start items-center'>
+            <div className='flex flex-row gap-3 justify-start items-center w-full'>
                 <span><img src={ReadHubImages.profileIcon} alt="" className='w-5 h-5' /></span>
                 <span className='text-xl font-semibold text-black'>Profile</span>
+                {!isEditing && (
+                    <button 
+                        onClick={handleEditToggle}
+                        className='ml-auto text-blue-500 hover:text-blue-700 font-medium'
+                    >
+                        Edit
+                    </button>
+                )}
             </div>
             <div className='userDetails flex flex-col gap-4 w-full'>
-                <div className='flex flex-col gap-1 justify-start items-start'>
+                <div className='flex flex-col gap-1 justify-start items-start w-full'>
                     <span className='text-lg font-normal'>Display name</span>
-                    <span className='border border-gray-300 px-4 py-3 w-full rounded-xl'>Olawale</span>
+                    {isEditing ? (
+                        <input 
+                            type="text"
+                            value={editedUsername}
+                            onChange={(e) => setEditedUsername(e.target.value)}
+                            className='border border-gray-300 px-4 py-3 w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500'
+                            placeholder='Enter your display name'
+                        />
+                    ) : (
+                        <span className='border border-gray-300 px-4 py-3 w-full rounded-xl'>{user ? user.username : 'username'}</span>
+                    )}
                 </div>
-                <div className='flex flex-col gap-1 justify-start items-start'>
+                <div className='flex flex-col gap-1 justify-start items-start w-full'>
                     <span className='text-lg font-normal'>Email</span>
-                    <span className='border border-gray-300 px-4 py-3 w-full rounded-xl'>JohnDoe@gmail.com</span>
+                    {isEditing ? (
+                        <input 
+                            type="email"
+                            value={editedEmail}
+                            onChange={(e) => setEditedEmail(e.target.value)}
+                            className='border border-gray-300 px-4 py-3 w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500'
+                            placeholder='Enter your email'
+                        />
+                    ) : (
+                        <span className='border border-gray-300 px-4 py-3 w-full rounded-xl'>{user ? user.email : 'username@gmail.com'}</span>
+                    )}
                 </div>
             </div>
         </div>
@@ -95,9 +186,38 @@ const Settings = () => {
              <span className='text-red-600'>Delete Account</span>
         </div>
 
-        <div className="card w-full items-center bg-blue-500 rounded-xl p-3 justify-center flex mt-7 mb-30">
-            <span className='font-normal text-white'>Save Settings</span>
-        </div>
+        {message.text && (
+            <div className={`mt-5 p-4 rounded-lg text-center font-medium ${
+                message.type === 'success' 
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-red-100 text-red-700'
+            }`}>
+                {message.text}
+            </div>
+        )}
+
+        {isEditing ? (
+            <div className="w-full flex gap-3 mt-7 mb-30">
+                <button 
+                    onClick={handleSaveSettings}
+                    disabled={isSaving}
+                    className='flex-1 bg-blue-500 rounded-xl p-3 justify-center flex font-normal text-white hover:bg-blue-600 disabled:bg-gray-400'
+                >
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button 
+                    onClick={handleEditToggle}
+                    disabled={isSaving}
+                    className='flex-1 bg-gray-300 rounded-xl p-3 justify-center flex font-normal text-gray-700 hover:bg-gray-400 disabled:bg-gray-200'
+                >
+                    Cancel
+                </button>
+            </div>
+        ) : (
+            <div className="card w-full items-center bg-blue-500 rounded-xl p-3 justify-center flex mt-7 mb-30">
+                <span className='font-normal text-white'>Settings Saved</span>
+            </div>
+        )}
     </div>
     </>
   )
