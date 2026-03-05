@@ -3,6 +3,8 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import morgan from 'morgan'
 import bodyParser from 'body-parser'
+import swaggerUi from 'swagger-ui-express'
+import swaggerSpec from './config/swagger.js'
 import connectDB from './config/db.js'
 import authRoutes from './routes/auth.routes.js'
 // import cookieParser from 'cookie-parser'
@@ -36,6 +38,7 @@ app.get('/', (req, res) => {
 })
 
 // Routes
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 app.use('/api/auth', authRoutes)
 app.use('/api/profile', userProfile)
 app.use('/api/cloudinary-signature', cloudinaryRoutes)

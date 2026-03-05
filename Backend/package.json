@@ -24,7 +24,9 @@
     "mongoose": "^9.1.4",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
-    "sib-api-v3-sdk": "^8.5.0"
+    "sib-api-v3-sdk": "^8.5.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
