@@ -50,7 +50,7 @@ const Library = () => {
 
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjs.getDocument(arrayBuffer).promise;
+      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
 
       const reader = new FileReader();
       reader.onload = async (e) => {
