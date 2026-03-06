@@ -20,12 +20,10 @@ export const generatePdfSignature = async (req, res) => {
     )
 
     res.json({
-      timestamp,
+      ...paramsToSign,
       signature,
       apiKey: process.env.CLOUDINARY_API_KEY,
       cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-      folder: 'documents',
-      resource_type: 'raw',
     })
   } catch (error) {
     res.status(500).json({ error: error.message })
