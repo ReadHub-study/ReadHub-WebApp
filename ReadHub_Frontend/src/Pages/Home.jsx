@@ -53,7 +53,7 @@ const Home = () => {
           </span>
         </div>
         <div>
-          <div className="w-fit h-[36px] bg-[#ff5800]/40 border-1 border-[#ff5b04] text-[#ff5b04] font-medium rounded-full flex justify-center items-center px-3 sm:px-[24px] xsm:text-[13px] opacity-80">
+          <div className="w-fit h-[36px] bg-[#ff5800]/40 border-1 border-[#ff5b04] text-[#ff5b04] font-medium rounded-full flex justify-center items-center px-3 sm:px-[24px] xsm:text-[13px] ">
             7 day Reading streak{" "}
             <img src="/fire.svg" alt="fire" className="w-[24px] xsm:w-[16px]" />
           </div>

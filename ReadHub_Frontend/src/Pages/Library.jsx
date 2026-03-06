@@ -214,7 +214,27 @@ const Library = () => {
       )}
       <div className="flex justify-between mb-8 items-center">
         <p className="text-black text-tittle_Large">Library</p>
-        <span className="flex w-[40px] h-[40px] rounded-[8.04] bg-white opacity-0"></span>
+
+        <label
+          htmlFor="fileselect"
+          className="flex w-[40px] h-[40px] rounded-[8.04] bg-white justify-center items-center"
+        >
+          <input
+            type="file"
+            accept=".pdf,.epub"
+            id="fileselect"
+            onChange={handleFileSElect}
+            className="hidden"
+          />{" "}
+          <svg
+            className="w-[24px] h-[24px]"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z"></path>
+          </svg>
+        </label>
       </div>
 
       <div className="bg-white h-[46px] w-full flex rounded-[11px] mb-4">
@@ -239,7 +259,7 @@ const Library = () => {
             className="hidden"
           />
           <img src="/Variant3c.svg" alt="icon" className="w-[24px]" />
-          <p>Upload file</p>
+          <p>Upload book</p>
         </label>
         <div className="h-[38px] w-[171px] xsm:w-[160px] border-1 rounded-[33px] border-[#4b6481] flex justify-center items-center">
           <img src="/Variant3b.svg" alt="icon" className="w-[24px]" />
