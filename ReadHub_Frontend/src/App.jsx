@@ -8,6 +8,7 @@ import Library from "./Pages/Library";
 import Notes from "./Pages/Notes";
 import Explore from "./Pages/Explore";
 import TimerControler from "./Components/TimerControler";
+import Focus from "./Pages/Focus";
 
 import ViewPdf from "./Features/ViewPdf";
 
@@ -47,6 +48,8 @@ function App() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/profile/settings" element={<Settings />} />
         <Route path="/profile/statistics" element={<Statistics />} />
+
+        <Route path="/focus" element={<Focus />} />
 
         <Route path="/viewpdf/:fileId" element={<ViewPdf />} />
         <Route path="/viewepub/:fileId" element={<ViewEpub />} />

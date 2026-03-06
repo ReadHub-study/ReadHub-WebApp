@@ -14,16 +14,16 @@ const Home = () => {
 
   // for fetching the user details so that it displays the username
   useEffect(() => {
-          const fetchUserProfile = async () => {
-              try {
-                  const { data } = await axiosConfig.get(apiEndpoints.USER_PROFILE);
-                  setUser(data.user);
-              } catch (error) {
-                  console.error('Error fetching user profile:', error);
-              }
-          };
-          fetchUserProfile();
-      }, []);
+    const fetchUserProfile = async () => {
+      try {
+        const { data } = await axiosConfig.get(apiEndpoints.USER_PROFILE);
+        setUser(data.user);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+    };
+    fetchUserProfile();
+  }, []);
 
   const openPdf = (file) => {
     selectFile(file);
@@ -112,7 +112,12 @@ const Home = () => {
 
         <div>
           <div className="bg-white w-[79px] h-[80px] rounded-[15.89px] flex flex-col justify-center items-center">
-            <div className="bg-[#10B981] rounded-[8.45px] w-[42px] h-[42.53px] flex justify-center opacity-70">
+            <div
+              className="bg-[#10B981] rounded-[8.45px] w-[42px] h-[42.53px] flex justify-center active:bg-[#10B981]/80"
+              onClick={() => {
+                navigate("/focus");
+              }}
+            >
               <img src="/lock_clock.svg" className="w-[24px]" />
             </div>
             <p className="text-[#4d4d4d] text-body_Small">Focus</p>
