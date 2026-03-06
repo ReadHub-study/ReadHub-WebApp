@@ -43,19 +43,23 @@ const Home = () => {
           <span className="flex h-[46px] w-[46px] bg-[#d9d9d9] rounded-full justify-center">
             <img src="/profile.svg" alt="profile" className="w-[30px]" />
           </span>
-          <span className="flex flex-col pl-1">
-            <p className="text-tittle_Small font-medium xsm:text-[13px]">
+          <span className="flex flex-col pl-1 w-fit">
+            <p className="text-tittle_Small font-medium max-xsm:text-[12px]">
               Welcome back
             </p>
-            <p className="text-tittle_Large font-medium xsm:text-[18px]">
+            <p className="text-tittle_Large font-medium max-xsm:text-[17px] leading-5 max-xsm:max-w-20 sm:max-w-40 truncate">
               {user ? user.username : "Reader"}
             </p>
           </span>
         </div>
         <div>
-          <div className="w-fit h-[36px] bg-[#ff5800]/40 border-1 border-[#ff5b04] text-[#ff5b04] font-medium rounded-full flex justify-center items-center px-3 sm:px-[24px] xsm:text-[13px] ">
-            7 day Reading streak{" "}
-            <img src="/fire.svg" alt="fire" className="w-[24px] xsm:w-[16px]" />
+          <div className="w-fit h-[36px] bg-[#ff5800]/40 border-1 border-[#ff5b04] text-[#ff5b04] font-medium rounded-full flex justify-center items-center px-3 sm:px-[24px] max-xsm:text-[13px] max-xsm:px-1">
+            <p className="truncate">7 day Reading streak </p>
+            <img
+              src="/fire.svg"
+              alt="fire"
+              className="w-[24px] max-xsm:w-[16px]"
+            />
           </div>
         </div>
       </div>
