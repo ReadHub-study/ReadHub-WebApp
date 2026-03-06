@@ -9,7 +9,11 @@ export function FileProvider({ children }) {
     return saved ? JSON.parse(saved) : [];
   });
   useEffect(() => {
-    localStorage.setItem("appFiles", JSON.stringify(files));
+    try {
+      localStorage.setItem("appFiles", JSON.stringify(files));
+    } catch (error) {
+      console.error("Failed to save files to localStorage:", error);
+    }
   }, [files]);
 
   const [selectedFile2, setSelectedFile] = useState(null);
