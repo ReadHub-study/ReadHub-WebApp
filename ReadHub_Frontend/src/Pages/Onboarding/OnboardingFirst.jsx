@@ -1,5 +1,4 @@
 import React from 'react'
-import "../Onboarding/OnboardingFirst.css"
 import { ReadHubImages } from '../../assets/asset'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
@@ -15,10 +14,10 @@ const OnboardingFirst = () => {
       }, [navigate] )
 
   return (
-    <div className='page'>
-        <div className="pageContent">
-            <div className="logo"><img src={ReadHubImages.FirstOnboardingImageIcon} alt="ReadHub" /></div>
-            <div className="text"><span>Read.Track.Stay Consistent</span></div>
+    <div className='page min-h-screen min-w-screen'>
+        <div className="pageContent p-8 flex items-center justify-center gap-5 flex-col bg-blue-500">
+            <div className=""><img src={ReadHubImages.FirstOnboardingImageIcon} alt="ReadHub" /></div>
+            <div className="font-medium text-2xl text-white"><span>Read.Track.Stay Consistent</span></div>
         </div>
     </div>
   )

@@ -11,6 +11,7 @@ const Home = () => {
   const [continueRead, setContinueRead] = useState(false);
   const { files, getProgress, selectFile } = useFiles();
   const [user, setUser] = useState(null);
+  const [image, setImage] = useState(null);
 
   // for fetching the user details so that it displays the username
   useEffect(() => {
@@ -18,6 +19,7 @@ const Home = () => {
       try {
         const { data } = await axiosConfig.get(apiEndpoints.USER_PROFILE);
         setUser(data.user);
+        setImage(data.user.profilePicture);
       } catch (error) {
         console.error("Error fetching user profile:", error);
       }
@@ -41,7 +43,7 @@ const Home = () => {
       <div className="flex pt-13 pb-[26px] justify-between items-center px-[16px]">
         <div className="flex flex-row items-center">
           <span className="flex h-[46px] w-[46px] bg-[#d9d9d9] rounded-full justify-center">
-            <img src="/profile.svg" alt="profile" className="w-[30px]" />
+            <img src={image} alt="profile" className="w-[30px]" />
           </span>
           <span className="flex flex-col pl-1 w-fit">
             <p className="text-tittle_Small font-medium max-xsm:text-[12px]">

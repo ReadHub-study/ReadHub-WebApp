@@ -201,7 +201,7 @@ const Profile = () => {
                 </div>
 
                 <div className="cards mt-10 flex flex-col gap-0.5 justify-center items-center">
-                    <div className="card bg-white flex rounded-t-xl flex-row justify-between w-full items-center p-5">
+                    <div onClick={() => navigate("profile/settings")} className="card bg-white flex rounded-t-xl flex-row justify-between w-full items-center p-5">
                         <div className="flex flex-row gap-2 items-center justify-start">
                             <span>
                                 <img src={ReadHubImages.circlesIcon} alt="" className="filter invert-50" />
