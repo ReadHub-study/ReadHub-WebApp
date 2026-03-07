@@ -16,7 +16,7 @@ const OnboardingSecond = () => {
             </div>
 
 
-        <div className=" flex flex-col gap-5 justify-center items-center mt-7">
+        <div className=" flex flex-col gap-5 justify-center items-center mt-10 w-full">
 
             <div className=""><img src={ReadHubImages.SecondOnboardingImage} alt="ReadHub" /></div>
 

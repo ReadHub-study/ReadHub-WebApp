@@ -9,7 +9,7 @@ const OnboardingFourth = () => {
   return (
     <div className='min-h-screen bg-white'>
             
-            <div className="bg-white px-4 py-6 flex flex-col gap-5 justify-center items-center pt-15">
+            <div className="bg-white px-4 py-6 flex flex-col gap-5 justify-center items-center pt-20 w-full">
                 <div className=""><img src={ReadHubImages.FourthOnboardingImage} alt="ReadHub" /></div>
                 <div className="mt-3 flex flex-col gap-2.5 items-center justify-center">
                     <span className="text-2xl text-blue-500 font-bold">Turn reading into growth</span>

@@ -51,7 +51,7 @@ const Home = () => {
         <div className="flex flex-row items-center">
           <span className="flex h-[46px] w-[46px] bg-[#d9d9d9] rounded-full justify-center items-center">
             {image ? (
-              <img src={image} alt="profile" className="w-[30px] h-[30px] rounded-full object-fit" />
+              <img src={image} alt="profile" className="w-[46px] h-[46px] rounded-full object-cover" />
             ) : (
               <img src="/profile.svg" alt="profile placeholder" className="w-[30px] h-[30px]" />
             )}
