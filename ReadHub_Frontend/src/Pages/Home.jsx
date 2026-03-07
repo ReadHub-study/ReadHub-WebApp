@@ -12,6 +12,7 @@ const Home = () => {
   const { files, getProgress, selectFile } = useFiles();
   const [user, setUser] = useState(null);
   const [image, setImage] = useState(null);
+  const [readingGoal, setReadingGoal] = useState(30);
 
   // for fetching the user details so that it displays the username
   useEffect(() => {
@@ -25,6 +26,12 @@ const Home = () => {
       }
     };
     fetchUserProfile();
+    
+    // Load reading goal from localStorage
+    const saved = localStorage.getItem('readingGoal');
+    if (saved) {
+      setReadingGoal(parseInt(saved));
+    }
   }, []);
 
   const openPdf = (file) => {
@@ -42,8 +49,12 @@ const Home = () => {
     <div className="pb-30">
       <div className="flex pt-13 pb-[26px] justify-between items-center px-[16px]">
         <div className="flex flex-row items-center">
-          <span className="flex h-[46px] w-[46px] bg-[#d9d9d9] rounded-full justify-center">
-            <img src={image} alt="profile" className="w-[30px]" />
+          <span className="flex h-[46px] w-[46px] bg-[#d9d9d9] rounded-full justify-center items-center">
+            {image ? (
+              <img src={image} alt="profile" className="w-[30px] h-[30px] rounded-full object-cover" />
+            ) : (
+              <img src="/profile.svg" alt="profile placeholder" className="w-[30px] h-[30px]" />
+            )}
           </span>
           <span className="flex flex-col pl-1 w-fit">
             <p className="text-tittle_Small font-medium max-xsm:text-[12px]">
@@ -77,7 +88,7 @@ const Home = () => {
           <div className="flex flex-col">
             <span className="flex items-baseline-last">
               <p className="text-display_Medium leading-10">0</p>
-              <p className="">/ 30 min</p>
+              <p className="">/ {readingGoal} min</p>
             </span>
             <span className="w-full bg-[#cde1fe] h-[14px] flex rounded-full"></span>
           </div>

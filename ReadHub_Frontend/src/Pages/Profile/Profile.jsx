@@ -10,6 +10,7 @@ const Profile = () => {
     const [user, setUser] = useState(null);
     const fileInputRef = useRef(null);
     const navigate = useNavigate();
+    const [readingGoal, setReadingGoal] = useState(30);
 
     useEffect(() => {
         const fetchUserProfile = async () => {
@@ -22,6 +23,14 @@ const Profile = () => {
             }
         };
         fetchUserProfile();
+
+
+           // Load reading goal from localStorage
+    const saved = localStorage.getItem('readingGoal');
+    if (saved) {
+      setReadingGoal(parseInt(saved));
+    }
+
     }, []);
 
     const handleLogout = () => {
@@ -185,13 +194,13 @@ const Profile = () => {
                             </span>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1 w-full">
                         <div className="flex flex-row justify-between items-center gap-46">
                             <div>
                                 <span className="text-white text-sm">Today's Progress</span>
                             </div>
                             <div>
-                                <span className="text-white text-sm">0/30min</span>
+                                <span className="text-white text-sm">0/{readingGoal}min</span>
                             </div>
                         </div>
                         <div className="card bg-white p-2 mt-5 rounded-lg">
@@ -201,7 +210,7 @@ const Profile = () => {
                 </div>
 
                 <div className="cards mt-10 flex flex-col gap-0.5 justify-center items-center">
-                    <div onClick={() => navigate("profile/settings")} className="card bg-white flex rounded-t-xl flex-row justify-between w-full items-center p-5">
+                    <div onClick={() => navigate('/profile/settings')} className="card bg-white flex rounded-t-xl flex-row justify-between w-full items-center p-5">
                         <div className="flex flex-row gap-2 items-center justify-start">
                             <span>
                                 <img src={ReadHubImages.circlesIcon} alt="" className="filter invert-50" />

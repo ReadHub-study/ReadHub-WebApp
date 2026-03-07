@@ -16,7 +16,10 @@ const Settings = () => {
     const [editedEmail, setEditedEmail] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
-    const [readingGoal, setReadingGoal] = useState(60);
+    const [readingGoal, setReadingGoal] = useState(() => {
+        const saved = localStorage.getItem('readingGoal');
+        return saved ? parseInt(saved) : 30;
+    });
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -34,6 +37,11 @@ const Settings = () => {
         };
         fetchUserProfile();
     }, []);
+
+    const handleReadingGoalChange = (value) => {
+        setReadingGoal(value);
+        localStorage.setItem('readingGoal', value);
+    };
 
     const handleEditToggle = () => {
         if (user) {
@@ -173,9 +181,9 @@ const Settings = () => {
                     <input 
                         type="range" 
                         min="0" 
-                        max="60" 
+                        max="30" 
                         value={readingGoal}
-                        onChange={(e) => setReadingGoal(parseInt(e.target.value))}
+                        onChange={(e) => handleReadingGoalChange(parseInt(e.target.value))}
                         className='w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500'
                     />
                 </div>
