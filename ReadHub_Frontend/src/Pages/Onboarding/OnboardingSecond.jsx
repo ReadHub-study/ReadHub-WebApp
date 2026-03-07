@@ -16,16 +16,16 @@ const OnboardingSecond = () => {
             </div>
 
 
-        <div className=" flex flex-col gap-5 justify-center items-center">
+        <div className=" flex flex-col gap-5 justify-center items-center mt-5">
 
             <div className=""><img src={ReadHubImages.SecondOnboardingImage} alt="ReadHub" /></div>
 
             <div className="flex flex-col gap-2.5 items-center justify-center mt-3">
                 <span className="text-2xl text-blue-500 font-bold">Read with intention</span>
-                <span className="text-gray-600 text-xl font-medium">Don't just read more. Read what truly matters <br /> to you</span>
+                <span className="text-gray-600 text-md font-medium items-center">Don't just read more. Read what truly matters <br /> to you</span>
             </div>
 
-            <div className="button w-full flex items-center justify-center mt-15"onClick={()=> navigate('/onboarding3')}>
+            <div className="button w-full flex items-center justify-center mt-10"onClick={()=> navigate('/onboarding3')}>
                 <span className='items-center bg-blue-400 text-white p-3 rounded-lg'>Next</span>
             </div>
 
