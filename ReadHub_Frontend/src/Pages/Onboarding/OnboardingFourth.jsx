@@ -7,10 +7,10 @@ const OnboardingFourth = () => {
     const navigate = useNavigate();
 
   return (
-    <div className='min-h-screen'>
+    <div className='min-h-screen bg-white'>
             
             <div className="bg-white px-4 py-6">
-                <div className="image"><img src={ReadHubImages.FourthOnboardingImage} alt="ReadHub" /></div>
+                <div className=""><img src={ReadHubImages.FourthOnboardingImage} alt="ReadHub" /></div>
                 <div className="mt-3 flex flex-col gap-2.5 items-center justify-center">
                     <span className="text-2xl text-blue-500 font-bold">Turn reading into growth</span>
                     <span className="text-gray-600 text-xl font-medium">Build a personal knowledge library that grows <br /> with you</span>

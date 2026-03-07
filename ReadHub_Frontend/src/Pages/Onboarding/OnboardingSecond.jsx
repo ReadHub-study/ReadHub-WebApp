@@ -7,18 +7,18 @@ const OnboardingSecond = () => {
     const navigate = useNavigate();
 
   return (
-    <div className='screen min-h-screen'>
+    <div className='min-h-screen bg-white'>
 
-        <div className="screenContent bg-white px-4 py-6">
+        <div className=" bg-white px-4 py-6">
 
-            <div className="justify-end items-end"  onClick={()=> navigate('/onboarding3')}>
-                <span className='text-md font-normal'>Skip</span>
+            <div className="justify-end items-end relative"  onClick={()=> navigate('/onboarding3')}>
+                <span className='text-md font-normal absolute right-[10%] top-1/2'>Skip</span>
             </div>
 
 
-        <div className="content flex flex-col gap-5 justify-center items-center">
+        <div className=" flex flex-col gap-5 justify-center items-center">
 
-            <div className="image"><img src={ReadHubImages.SecondOnboardingImage} alt="ReadHub" /></div>
+            <div className=""><img src={ReadHubImages.SecondOnboardingImage} alt="ReadHub" /></div>
 
             <div className="flex flex-col gap-2.5 items-center justify-center mt-3">
                 <span className="text-2xl text-blue-500 font-bold">Read with intention</span>

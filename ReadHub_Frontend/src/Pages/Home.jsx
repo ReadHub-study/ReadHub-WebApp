@@ -51,7 +51,7 @@ const Home = () => {
         <div className="flex flex-row items-center">
           <span className="flex h-[46px] w-[46px] bg-[#d9d9d9] rounded-full justify-center items-center">
             {image ? (
-              <img src={image} alt="profile" className="w-[30px] h-[30px] rounded-full object-cover" />
+              <img src={image} alt="profile" className="w-[30px] h-[30px] rounded-full object-fit" />
             ) : (
               <img src="/profile.svg" alt="profile placeholder" className="w-[30px] h-[30px]" />
             )}
@@ -93,7 +93,7 @@ const Home = () => {
             <span className="w-full bg-[#cde1fe] h-[14px] flex rounded-full"></span>
           </div>
           <div>
-            <p className="font-medium">30 minutes to reach your goal</p>
+            <p className="font-medium">{readingGoal} minutes to reach your goal</p>
           </div>
         </div>
       </div>

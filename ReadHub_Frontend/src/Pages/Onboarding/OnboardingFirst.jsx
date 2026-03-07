@@ -14,8 +14,8 @@ const OnboardingFirst = () => {
       }, [navigate] )
 
   return (
-    <div className='page min-h-screen min-w-screen'>
-        <div className="pageContent p-8 flex items-center justify-center gap-5 flex-col bg-blue-500">
+    <div className=' min-h-screen min-w-screen bg-blue-500'>
+        <div className=" p-8 flex items-center justify-center gap-5 flex-col bg-blue-500">
             <div className=""><img src={ReadHubImages.FirstOnboardingImageIcon} alt="ReadHub" /></div>
             <div className="font-medium text-2xl text-white"><span>Read.Track.Stay Consistent</span></div>
         </div>
