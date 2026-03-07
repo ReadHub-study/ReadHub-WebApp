@@ -16,7 +16,7 @@ const OnboardingThird = () => {
                 <div className=""><img src={ReadHubImages.ThirdOnboardingImage} alt="ReadHub" /></div>
                 <div className="flex flex-col gap-2.5 items-center justify-center mt-3">
                     <span className="text-2xl text-blue-500 font-bold">Capture what matters</span>
-                    <span className="text-gray-600 text-md font-medium items-center">Save highlights, ideas, and thoughts you don't <br /> want to forget</span>
+                    <span className="text-gray-600 text-md font-medium text-center">Save highlights, ideas, and thoughts you don't <br /> want to forget</span>
                 </div>
                 <div className="button  w-full flex items-center justify-center mt-10"
                 onClick={()=> navigate('/onboarding4')}

@@ -22,7 +22,7 @@ const OnboardingSecond = () => {
 
             <div className="flex flex-col gap-2.5 items-center justify-center mt-3">
                 <span className="text-2xl text-blue-500 font-bold">Read with intention</span>
-                <span className="text-gray-600 text-md font-medium items-center">Don't just read more. Read what truly matters <br /> to you</span>
+                <span className="text-gray-600 text-md font-medium text-center">Don't just read more. Read what truly matters <br /> to you</span>
             </div>
 
             <div className="button w-full flex items-center justify-center mt-10"onClick={()=> navigate('/onboarding3')}>

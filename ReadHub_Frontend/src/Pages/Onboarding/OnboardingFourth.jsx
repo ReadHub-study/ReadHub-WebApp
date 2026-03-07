@@ -9,11 +9,11 @@ const OnboardingFourth = () => {
   return (
     <div className='min-h-screen bg-white'>
             
-            <div className="bg-white px-4 py-6 flex flex-col gap-5 justify-center items-center mt-7">
+            <div className="bg-white px-4 py-6 flex flex-col gap-5 justify-center items-center pt-7">
                 <div className=""><img src={ReadHubImages.FourthOnboardingImage} alt="ReadHub" /></div>
                 <div className="mt-3 flex flex-col gap-2.5 items-center justify-center">
                     <span className="text-2xl text-blue-500 font-bold">Turn reading into growth</span>
-                    <span className="text-gray-600 text-md font-medium">Build a personal knowledge library that grows <br /> with you</span>
+                    <span className="text-gray-600 text-md font-medium text-center">Build a personal knowledge library that grows <br /> with you</span>
                 </div>
                 <div className="button  w-full flex items-center justify-center mt-10"
                 onClick={()=> navigate('/signup')}
