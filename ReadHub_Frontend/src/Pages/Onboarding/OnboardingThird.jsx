@@ -12,7 +12,7 @@ const OnboardingThird = () => {
                 <div className="justify-end relative items-end" onClick={()=> navigate('/onboarding4')}>
                     <span className='text-md font-normal absolute right-[10%] top-1/2'>Skip</span>
                 </div>
-            <div className="flex flex-col gap-5 justify-center items-center mt-5">
+            <div className="flex flex-col gap-5 justify-center items-center mt-7">
                 <div className=""><img src={ReadHubImages.ThirdOnboardingImage} alt="ReadHub" /></div>
                 <div className="flex flex-col gap-2.5 items-center justify-center mt-3">
                     <span className="text-2xl text-blue-500 font-bold">Capture what matters</span>
