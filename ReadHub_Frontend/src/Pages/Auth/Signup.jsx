@@ -76,7 +76,7 @@ const Signup = () => {
       if (response.status === 200) {
         toast.success("Logged in successfully.");
         localStorage.setItem("accessToken", response.data.accessToken);
-        navigate("/");
+        navigate("/home");
       }
     } catch (err) {
       setError(
