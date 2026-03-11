@@ -50,25 +50,21 @@ export const login = async (req, res) => {
     const { email, password } = req.body
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required' })
+      return res.status(400).json({ message: 'Email and password required' })
     }
 
     const user = await User.findOne({ email })
     if (!user) {
-      return res.status(400).json({ error: 'Invalid email or password' })
+      return res.status(400).json({ message: 'Invalid email or password' })
     }
 
-    if (
-      user.password === undefined ||
-      user.password === null ||
-      user.provider != 'local'
-    ) {
-      return res.status(400).json({ error: 'Login with Google' })
+    if (!user.password || !user.provider.includes('local')) {
+      return res.status(400).json({ message: 'Login with Google' })
     }
 
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid email or password' })
+      return res.status(400).json({ message: 'Invalid email or password' })
     }
 
     const accessToken = generateAccessToken({
@@ -93,7 +89,7 @@ export const login = async (req, res) => {
       accessToken,
     })
   } catch (err) {
-    return res.status(500).json({ error: 'Login failed' })
+    return res.status(500).json({ message: 'Login failed' })
   }
 }
 
