@@ -10,7 +10,6 @@ export const generatePdfSignature = async (req, res) => {
     const paramsToSign = {
       timestamp,
       folder: 'documents',
-      resource_type: 'raw',
       allowed_formats: 'pdf,doc,docx,txt',
     }
 
