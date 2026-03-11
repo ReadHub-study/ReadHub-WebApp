@@ -67,6 +67,7 @@ const Login = () => {
       });
       if (response.status === 200) {
         toast.success("Logged in successfully.");
+        localStorage.setItem("refreshToken", response.data.refreshToken);
         localStorage.setItem("accessToken", response.data.accessToken);
         navigate("/home");
       }
