@@ -114,9 +114,13 @@ export const googleAuth = async (req, res) => {
 
     if (user) {
       if (user.provider !== 'google') {
-        return res.status(400).json({
-          error: 'Account exists. Login with email and password',
-        })
+        await User.updateOne(
+          { _id: user._id },
+          { $set: { googleId, provider: 'google' } },
+        )
+        user.googleId = googleId
+        user.provider = 'google'
+        await user.save()
       }
     }
 
