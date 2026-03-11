@@ -115,13 +115,9 @@ export const googleAuth = async (req, res) => {
     let user = await User.findOne({ email })
 
     if (user) {
-      if (user.provider !== 'google') {
-        await User.updateOne(
-          { _id: user._id },
-          { $set: { googleId, provider: 'google' } },
-        )
+      if (!user.provider.includes('google')) {
         user.googleId = googleId
-        user.provider = 'google'
+        user.provider.push('google')
         await user.save()
       }
     }
@@ -131,7 +127,7 @@ export const googleAuth = async (req, res) => {
         email,
         username: name.replace(/\s+/g, '').toLowerCase(),
         googleId,
-        provider: 'google',
+        provider: ['google'],
       })
     }
 
