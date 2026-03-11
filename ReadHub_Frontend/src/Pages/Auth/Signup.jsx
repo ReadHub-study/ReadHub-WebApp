@@ -75,7 +75,7 @@ const Signup = () => {
       });
       if (response.status === 200) {
         toast.success("Logged in successfully.");
-        localStorage.setItem("accessToken", response.data.accessToken);
+        localStorage.setItem("token", response.data.accessToken);
         localStorage.setItem("refreshToken", response.data.refreshToken);
         navigate("/home");
       }
