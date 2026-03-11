@@ -114,8 +114,13 @@ export const googleAuth = async (req, res) => {
 
     if (user) {
       if (user.provider !== 'google') {
-       await User.updateOne({ _id: user._id }, { $set: { googleId, provider: 'google' } })
-        })
+        await User.updateOne(
+          { _id: user._id },
+          { $set: { googleId, provider: 'google' } },
+        )
+        user.googleId = googleId
+        user.provider = 'google'
+        await user.save()
       }
     }
 
