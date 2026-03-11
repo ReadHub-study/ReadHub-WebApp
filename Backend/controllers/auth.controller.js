@@ -58,10 +58,12 @@ export const login = async (req, res) => {
       return res.status(400).json({ error: 'Invalid email or password' })
     }
 
-    if (user.provider === 'google') {
-      return res.status(400).json({
-        error: 'Account created with Google. Please login with Google',
-      })
+    if (
+      user.password === undefined ||
+      user.password === null ||
+      user.provider != 'local'
+    ) {
+      return res.status(400).json({ error: 'Login with Google' })
     }
 
     const isMatch = await bcrypt.compare(password, user.password)
