@@ -55,7 +55,7 @@ export const uploadBook = async (req, res) => {
       coverImageUrl,
       fileUrl,
       pages,
-      uploadedBy: req.user._id,
+      uploadedBy: req.user.id,
     })
     await newBook.save()
     res

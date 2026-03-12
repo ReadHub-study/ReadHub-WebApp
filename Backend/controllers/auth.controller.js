@@ -67,14 +67,9 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password' })
     }
 
-    const accessToken = generateAccessToken({
-      id: user._id,
-      email: user.email,
-    })
+    const accessToken = generateAccessToken({ id: user._id })
 
-    const refreshToken = generateRefreshToken({
-      id: user._id,
-    })
+    const refreshToken = generateRefreshToken({ id: user._id })
 
     await User.updateOne({ _id: user._id }, { $set: { refreshToken } })
 
@@ -127,14 +122,9 @@ export const googleAuth = async (req, res) => {
       })
     }
 
-    const accessToken = generateAccessToken({
-      id: user._id,
-      email: user.email,
-    })
+    const accessToken = generateAccessToken({ id: user._id })
 
-    const refreshToken = generateRefreshToken({
-      id: user._id,
-    })
+    const refreshToken = generateRefreshToken({ id: user._id })
 
     await User.updateOne({ _id: user._id }, { $set: { refreshToken } })
 
