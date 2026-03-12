@@ -32,8 +32,8 @@ const bookSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['reading', 'completed'],
-      default: '',
+      enum: ['reading', 'completed', 'plan to read'],
+      default: 'plan to read',
     },
   },
   { timestamps: true },
