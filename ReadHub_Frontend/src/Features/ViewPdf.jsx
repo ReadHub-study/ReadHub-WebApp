@@ -4,6 +4,7 @@ import { useFiles } from "../Context/FileContext";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useSwipeable } from "react-swipeable";
 import axiosConfig from "../Util/axiosConfig";
+import { apiEndpoints } from "../Util/apiEndpoints";
 import CustomTextViewer from "../Components/CustomTextViewer";
 import EpubReader from "../Components/EpubReader";
 
@@ -85,10 +86,21 @@ const ViewPdf = () => {
       try {
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
+        
+        // Calculate position relative to viewport and adjust for viewport
+        let top = rect.top + window.scrollY - 60; // 60px above selection
+        let left = rect.left + rect.width / 2;
+        
+        // Ensure popup doesn't go off-screen
+        if (top < 10) {
+          top = rect.bottom + window.scrollY + 10; // Position below if not enough space above
+        }
+        
         setPopupPosition({
-          x: rect.left + window.scrollX + rect.width / 2,
-          y: rect.top + window.scrollY - 15,
+          x: left,
+          y: top,
         });
+        console.log("Text selected:", selectedText, "Position:", { x: left, y: top });
         setShowPopup(true);
       } catch (err) {
         console.warn("Could not calculate popup position:", err);
@@ -188,13 +200,13 @@ const ViewPdf = () => {
       console.log("Saving note with:", {
         bookId: selectedFile2.id,
         content: selectedText,
-        pageNumber: pageNumber,
+        page: pageNumber,
       });
 
-      const response = await axiosConfig.post("notes", {
+      const response = await axiosConfig.post(apiEndpoints.NOTES, {
         bookId: selectedFile2.id,
         content: selectedText,
-        pageNumber: pageNumber,
+        page: pageNumber,
       });
 
       console.log("Note saved successfully:", response.data);
@@ -418,6 +430,7 @@ const ViewPdf = () => {
               file={selectedFile2}
               theme={darkToggle}
               scale={scaleFont}
+              onTextSelect={handleTextSelection}
             />
           )}
         </div>
@@ -426,31 +439,36 @@ const ViewPdf = () => {
         {showPopup && (
           <div
             ref={popupRef}
-            className="fixed bg-blue-500 text-white rounded-[12px] p-3 shadow-lg z-50 flex gap-3"
+            className="fixed bg-white text-gray-900 rounded-[12px] p-3 shadow-xl z-50 flex gap-2 flex-wrap justify-center border border-gray-300"
             style={{
               left: `${popupPosition.x}px`,
               top: `${popupPosition.y}px`,
-              transform: "translateX(-50%)",
+              transform: "translate(-50%, 0)",
+              maxWidth: "280px",
+              minWidth: "fit-content",
             }}
           >
             <button
               onClick={handleHighlight}
-              className="px-4 py-2 bg-blue-600 rounded-[8px] text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="px-3 py-2 bg-blue-500 text-white rounded-[8px] text-xs font-medium hover:bg-blue-600 transition-colors whitespace-nowrap"
+              title="Highlight selected text permanently"
             >
-              Highlight
+              ✓ Highlight
             </button>
             <button
               onClick={handleSaveNote}
               disabled={saving}
-              className="px-4 py-2 bg-blue-600 rounded-[8px] text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="px-3 py-2 bg-green-500 text-white rounded-[8px] text-xs font-medium hover:bg-green-600 transition-colors disabled:opacity-50 whitespace-nowrap"
+              title="Save note to your library"
             >
-              {saving ? "Saving..." : "Save"}
+              {saving ? "Saving..." : "💾 Save"}
             </button>
             <button
               onClick={handleAISummary}
-              className="px-4 py-2 bg-blue-600 rounded-[8px] text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="px-3 py-2 bg-purple-500 text-white rounded-[8px] text-xs font-medium hover:bg-purple-600 transition-colors whitespace-nowrap"
+              title="Get AI summary of selected text"
             >
-              AI Summary
+              ✨ AI Summary
             </button>
           </div>
         )}

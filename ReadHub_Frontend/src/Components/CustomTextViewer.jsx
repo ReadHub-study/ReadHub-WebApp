@@ -3,7 +3,7 @@ import { useSwipeable } from "react-swipeable";
 import { extractTextWithLayout } from "../Utils/pdfUtils";
 import { useFiles } from "../Context/FileContext";
 
-const CustomTextViewer = ({ fileData, file, theme, scale }) => {
+const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
   const [pages, setpages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -121,7 +121,7 @@ const CustomTextViewer = ({ fileData, file, theme, scale }) => {
       {
         <div className="max-w-4xl mx-auto">
           {/* Page Content */}
-          <div className="px-4">
+          <div className="px-4" onMouseUpCapture={onTextSelect}>
             <div className="max-w-none">
               <div {...swipeHandlers}>
                 {formatIntoParagraphs(pages[currentPage].textItems).map(
