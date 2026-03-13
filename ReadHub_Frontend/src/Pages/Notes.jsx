@@ -13,7 +13,7 @@ const Notes = () => {
   const fetchNotes = async () => {
     try {
       setLoading(true);
-      const response = await axiosConfig.get("notes");
+      const response = await axiosConfig.get(apiEndpoints.NOTES);
       setNotes(response.data || []);
       setError(null);
     } catch (err) {
@@ -46,17 +46,23 @@ const Notes = () => {
       <div className="px-[16px] pt-[40px] overflow-hidden mb-15">
         <div className="flex justify-between mb-8 items-center">
           <p className="text-black text-tittle_Large">Highlights & Notes</p>
-          <span className="flex w-[40px] h-[40px] rounded-[8.04] bg-white justify-center items-center">
+          <button
+            onClick={() => {
+              fetchNotes();
+            }}
+            className="flex w-[40px] h-[40px] rounded-[8.04] bg-white justify-center items-center hover:bg-gray-100 transition-colors"
+            title="Refresh notes"
+          >
             {" "}
             <svg
-              className="w-[24px] h-[24px]"
+              className={`w-[24px] h-[24px] ${loading ? "animate-spin" : ""}`}
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               fill="currentColor"
             >
               <path d="M13 10H18L12 16L6 10H11V3H13V10ZM4 19H20V12H22V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V12H4V19Z"></path>
             </svg>
-          </span>
+          </button>
         </div>
 
         <div className="bg-white h-[46px] w-full flex rounded-[11px] mb-4">

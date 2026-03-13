@@ -78,15 +78,22 @@ const ViewPdf = () => {
   // Handle text selection
   const handleTextSelection = () => {
     const selection = window.getSelection();
-    if (selection.toString().length > 0) {
-      setSelectedText(selection.toString());
-      const range = selection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-      setPopupPosition({
-        x: rect.left + window.scrollX,
-        y: rect.top + window.scrollY - 10,
-      });
-      setShowPopup(true);
+    const selectedText = selection.toString().trim();
+    
+    if (selectedText.length > 0) {
+      setSelectedText(selectedText);
+      try {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        setPopupPosition({
+          x: rect.left + window.scrollX + rect.width / 2,
+          y: rect.top + window.scrollY - 15,
+        });
+        setShowPopup(true);
+      } catch (err) {
+        console.warn("Could not calculate popup position:", err);
+        setShowPopup(false);
+      }
     } else {
       setShowPopup(false);
     }
@@ -164,19 +171,34 @@ const ViewPdf = () => {
         timestamp: new Date().toISOString(),
       });
       setShowPopup(false);
+      setSelectedText("");
+      // Clear browser selection
+      window.getSelection().removeAllRanges();
     }
   };
 
   const handleSaveNote = async () => {
-    if (!selectedText || !selectedFile2?.id) return;
+    if (!selectedText || !selectedFile2?.id) {
+      alert("Please select text first");
+      return;
+    }
     
     setSaving(true);
     try {
-      await axiosConfig.post("notes", {
+      console.log("Saving note with:", {
         bookId: selectedFile2.id,
         content: selectedText,
         pageNumber: pageNumber,
       });
+
+      const response = await axiosConfig.post("notes", {
+        bookId: selectedFile2.id,
+        content: selectedText,
+        pageNumber: pageNumber,
+      });
+
+      console.log("Note saved successfully:", response.data);
+
       // Also add to local highlights
       addHighlight(selectedFile2.id, {
         text: selectedText,
@@ -185,9 +207,11 @@ const ViewPdf = () => {
         saved: true,
       });
       setShowPopup(false);
+      setSelectedText("");
+      alert("Note saved successfully!");
     } catch (error) {
       console.error("Error saving note:", error);
-      alert("Failed to save note. Please try again.");
+      alert(`Failed to save note: ${error.response?.data?.message || error.message}`);
     } finally {
       setSaving(false);
     }
@@ -197,6 +221,8 @@ const ViewPdf = () => {
     // Placeholder for AI Summary functionality
     alert("AI Summary feature coming soon!");
     setShowPopup(false);
+    setSelectedText("");
+    window.getSelection().removeAllRanges();
   };
 
   if (!selectedFile2 && fileId) {
@@ -369,7 +395,7 @@ const ViewPdf = () => {
           {/* Toggle between PDF and Text view */}
 
           {viewMode === "pdf" ? (
-            <div className=" flex justify-center overflow-hidden w-dvw" onMouseUp={handleTextSelection}>
+            <div className=" flex justify-center overflow-hidden w-dvw" onMouseUpCapture={handleTextSelection}>
               <Document
                 file={selectedFile2.file}
                 onLoadSuccess={onDocumentLoadSuccess}
@@ -380,7 +406,7 @@ const ViewPdf = () => {
                 <Page
                   pageNumber={pageNumber}
                   renderAnnotationLayer={false}
-                  renderTextLayer={false}
+                  renderTextLayer={true}
                   scale={scale}
                   devicePixelRatio={window.devicePixelRatio}
                 />

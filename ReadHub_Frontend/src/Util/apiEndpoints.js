@@ -17,4 +17,6 @@ export const apiEndpoints = {
     DELETE_PROFILE: "/profile/delete",
     UPDATE_PROFILE: "/profile/update",
     CLOUDINARY_SIGNATURE: "/cloudinary-signature/image",
+    NOTES: "notes",
+    NOTES_BY_ID: "notes/:id",
 };
