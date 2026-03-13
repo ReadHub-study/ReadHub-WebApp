@@ -3,7 +3,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { useFiles } from "../Context/FileContext";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useSwipeable } from "react-swipeable";
-
+import axiosConfig from "../Util/axiosConfig";
 import CustomTextViewer from "../Components/CustomTextViewer";
 import EpubReader from "../Components/EpubReader";
 
@@ -12,7 +12,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 const ViewPdf = () => {
   const { fileId } = useParams();
 
-  const { selectedFile2, updateCurrentPage, selectFile, files } = useFiles();
+  const { selectedFile2, updateCurrentPage, selectFile, files, addHighlight, getHighlights } = useFiles();
 
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
@@ -25,6 +25,13 @@ const ViewPdf = () => {
 
   const [scale, setScale] = useState(0.5);
   const [scaleFont, setScaleFont] = useState(14);
+
+  // Highlight and popup states
+  const [selectedText, setSelectedText] = useState("");
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [showPopup, setShowPopup] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const popupRef = useRef(null);
 
   useEffect(() => {
     if (fileId) {
@@ -67,6 +74,37 @@ const ViewPdf = () => {
       );
     }
   }, [viewMode, selectedFile2?.currentPage]);
+
+  // Handle text selection
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    if (selection.toString().length > 0) {
+      setSelectedText(selection.toString());
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      setPopupPosition({
+        x: rect.left + window.scrollX,
+        y: rect.top + window.scrollY - 10,
+      });
+      setShowPopup(true);
+    } else {
+      setShowPopup(false);
+    }
+  };
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (popupRef.current && !popupRef.current.contains(e.target)) {
+        setShowPopup(false);
+      }
+    };
+
+    if (showPopup) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showPopup]);
 
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
@@ -116,6 +154,49 @@ const ViewPdf = () => {
 
   const reduceFont = () => {
     setScaleFont((prev) => Math.max(prev - 2, 14));
+  };
+
+  const handleHighlight = () => {
+    if (selectedText && selectedFile2?.id) {
+      addHighlight(selectedFile2.id, {
+        text: selectedText,
+        page: pageNumber,
+        timestamp: new Date().toISOString(),
+      });
+      setShowPopup(false);
+    }
+  };
+
+  const handleSaveNote = async () => {
+    if (!selectedText || !selectedFile2?.id) return;
+    
+    setSaving(true);
+    try {
+      await axiosConfig.post("notes", {
+        bookId: selectedFile2.id,
+        content: selectedText,
+        pageNumber: pageNumber,
+      });
+      // Also add to local highlights
+      addHighlight(selectedFile2.id, {
+        text: selectedText,
+        page: pageNumber,
+        timestamp: new Date().toISOString(),
+        saved: true,
+      });
+      setShowPopup(false);
+    } catch (error) {
+      console.error("Error saving note:", error);
+      alert("Failed to save note. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAISummary = () => {
+    // Placeholder for AI Summary functionality
+    alert("AI Summary feature coming soon!");
+    setShowPopup(false);
   };
 
   if (!selectedFile2 && fileId) {
@@ -288,7 +369,7 @@ const ViewPdf = () => {
           {/* Toggle between PDF and Text view */}
 
           {viewMode === "pdf" ? (
-            <div className=" flex justify-center overflow-hidden w-dvw">
+            <div className=" flex justify-center overflow-hidden w-dvw" onMouseUp={handleTextSelection}>
               <Document
                 file={selectedFile2.file}
                 onLoadSuccess={onDocumentLoadSuccess}
@@ -314,6 +395,39 @@ const ViewPdf = () => {
             />
           )}
         </div>
+
+        {/* Highlight Popup Menu */}
+        {showPopup && (
+          <div
+            ref={popupRef}
+            className="fixed bg-blue-500 text-white rounded-[12px] p-3 shadow-lg z-50 flex gap-3"
+            style={{
+              left: `${popupPosition.x}px`,
+              top: `${popupPosition.y}px`,
+              transform: "translateX(-50%)",
+            }}
+          >
+            <button
+              onClick={handleHighlight}
+              className="px-4 py-2 bg-blue-600 rounded-[8px] text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Highlight
+            </button>
+            <button
+              onClick={handleSaveNote}
+              disabled={saving}
+              className="px-4 py-2 bg-blue-600 rounded-[8px] text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              onClick={handleAISummary}
+              className="px-4 py-2 bg-blue-600 rounded-[8px] text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              AI Summary
+            </button>
+          </div>
+        )}
 
         <div className="flex gap-4 mb-4 pt-5 justify-center">
           <button

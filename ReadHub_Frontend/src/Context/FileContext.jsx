@@ -17,6 +17,18 @@ export function FileProvider({ children }) {
   }, [files]);
 
   const [selectedFile2, setSelectedFile] = useState(null);
+  const [highlights, setHighlights] = useState(() => {
+    const saved = localStorage.getItem("appHighlights");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("appHighlights", JSON.stringify(highlights));
+    } catch (error) {
+      console.error("Failed to save highlights to localStorage:", error);
+    }
+  }, [highlights]);
 
   const addFile = (file) => {
     setFiles((prev) => [...prev, file]);
@@ -32,6 +44,24 @@ export function FileProvider({ children }) {
       setSelectedFile(null);
     }
   };
+
+  const addHighlight = useCallback((fileId, highlight) => {
+    setHighlights((prev) => ({
+      ...prev,
+      [fileId]: [...(prev[fileId] || []), { ...highlight, id: Date.now() }],
+    }));
+  }, []);
+
+  const getHighlights = useCallback((fileId) => {
+    return highlights[fileId] || [];
+  }, [highlights]);
+
+  const removeHighlight = useCallback((fileId, highlightId) => {
+    setHighlights((prev) => ({
+      ...prev,
+      [fileId]: (prev[fileId] || []).filter((h) => h.id !== highlightId),
+    }));
+  }, []);
 
   const updateCurrentPage = useCallback(
     (fileId, pageNumber, source = "unknown") => {
@@ -62,6 +92,9 @@ export function FileProvider({ children }) {
         selectFile,
         updateCurrentPage,
         getProgress,
+        addHighlight,
+        getHighlights,
+        removeHighlight,
       }}
     >
       {children}
