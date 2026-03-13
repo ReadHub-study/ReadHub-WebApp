@@ -122,52 +122,6 @@ const Notes = () => {
               ))}
             </div>
           </div>
-
-              <div>
-                <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
-                  <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">
-                    <p className=" text-body_Medium font-medium">
-                      “You do not rise to the level of your goals. You fall to
-                      the level of your systems.”
-                    </p>
-                    <p className="text-[#5f5f61] text-body_Small mt-1">
-                      Page 27
-                    </p>
-                  </div>
-                </div>
-              </div>
-          </div>
-        ) : loading ? (
-
-              <div>
-                <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
-                  <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">
-                    <p className=" text-body_Medium font-medium">
-                      “You do not rise to the level of your goals. You fall to
-                      the level of your systems.”
-                    </p>
-                    <p className="text-[#5f5f61] text-body_Small mt-1">
-                      Page 27
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
-                  <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">
-                    <p className=" text-body_Medium font-medium">
-                      “You do not rise to the level of your goals. You fall to
-                      the level of your systems.”
-                    </p>
-                    <p className="text-[#5f5f61] text-body_Small mt-1">
-                      Page 27
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         ) : loading ? (
           <div className="flex justify-center h-100 items-center">
             Loading notes...
