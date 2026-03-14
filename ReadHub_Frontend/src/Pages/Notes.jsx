@@ -29,13 +29,17 @@ const Notes = () => {
   };
 
   // Get local highlights from FileContext
+  // NOTE: Local highlights are only for visual display while reading
+  // They should NOT be displayed in Notes page - only saved notes appear here
   const localHighlights = files.flatMap((file) => {
     const fileHighlights = getHighlights(file.id) || [];
-    return fileHighlights.map((highlight) => ({
-      ...highlight,
-      bookId: file.id,
-      bookTitle: file.name,
-    }));
+    return fileHighlights
+      .filter((h) => h.saved) // Only include highlights that were saved as notes
+      .map((highlight) => ({
+        ...highlight,
+        bookId: file.id,
+        bookTitle: file.name,
+      }));
   });
 
   // Group API notes by book
@@ -52,40 +56,23 @@ const Notes = () => {
     return acc;
   }, {});
 
-  // Group local highlights by file
-  const groupedLocalHighlights = localHighlights.reduce((acc, highlight) => {
-    const bookId = highlight.bookId;
-    const bookTitle = highlight.bookTitle;
-    if (!acc[bookId]) {
-      acc[bookId] = {
-        title: bookTitle,
-        highlights: [],
-      };
-    }
-    acc[bookId].highlights.push(highlight);
-    return acc;
-  }, {});
-
-  // Combine both local highlights and API notes
+  // Combine only saved notes (local highlights with saved flag + API notes)
+  // Do NOT display unsaved local highlights
   const allNotes = [
     ...localHighlights.map((h) => ({
       _id: h.id,
       content: h.text,
       page: h.page,
       book: { _id: h.bookId, title: h.bookTitle },
-      isLocal: true,
+      isLocal: false,
     })),
     ...notes.map((n) => ({ ...n, isLocal: false })),
   ];
 
-  // Total highlights = local highlights + API notes
+  // Total highlights = API notes only (local unsaved highlights are for visual display only)
   const totalHighlights = allNotes.length;
-  // Total books from both local and API
-  const totalBooksSet = new Set([
-    ...Object.keys(groupedNotes),
-    ...Object.keys(groupedLocalHighlights),
-  ]);
-  const totalBooks = totalBooksSet.size;
+  // Total books from API notes only
+  const totalBooks = Object.keys(groupedNotes).length;
   return (
     <div>
       <div className="px-[16px] pt-[40px] overflow-hidden mb-15">
@@ -149,13 +136,11 @@ const Notes = () => {
         {allNotes.length > 0 ? (
           <div>
             <div>
-              {Array.from(totalBooksSet).map((bookId) => {
-                const localBooksHighlights = groupedLocalHighlights[bookId]?.highlights || [];
+              {Object.keys(groupedNotes).map((bookId) => {
                 const apiBooksNotes = groupedNotes[bookId]?.notes || [];
-                const bookTitle = groupedLocalHighlights[bookId]?.title || groupedNotes[bookId]?.title || "Unknown Book";
-                const allBookNotes = [...localBooksHighlights, ...apiBooksNotes];
+                const bookTitle = groupedNotes[bookId]?.title || "Unknown Book";
 
-                if (allBookNotes.length === 0) return null;
+                if (apiBooksNotes.length === 0) return null;
 
                 return (
                   <div key={bookId}>
@@ -164,7 +149,7 @@ const Notes = () => {
                       <p className="ml-1">{bookTitle}</p>
                     </span>
 
-                    {allBookNotes.map((note, index) => (
+                    {apiBooksNotes.map((note, index) => (
                       <div key={note._id || index}>
                         <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
                           <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">
@@ -172,7 +157,7 @@ const Notes = () => {
                               "{note.content}"
                             </p>
                             <p className="text-[#5f5f61] text-body_Small mt-1">
-                              Page {note.page} {note.isLocal ? "(Local)" : ""}
+                              Page {note.page}
                             </p>
                           </div>
                         </div>

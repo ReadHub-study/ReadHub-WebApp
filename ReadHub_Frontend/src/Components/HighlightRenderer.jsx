@@ -51,37 +51,72 @@ export const renderTextWithHighlights = (text, highlights = [], pageNumber) => {
 };
 
 /**
- * Highlights text segments within a DOM element
- * Used for DOM-based highlighting
+ * Highlights text segments within a PDF text layer
+ * More robust approach using mutation observer and direct element styling
  */
-export const highlightTextInElement = (element, highlights = [], pageNumber) => {
-  if (!element || !highlights || highlights.length === 0) return;
+export const highlightTextInPDF = (containerSelector, highlights = [], pageNumber) => {
+  if (!highlights || highlights.length === 0) return;
 
   const currentPageHighlights = highlights.filter(h => h.page === pageNumber);
   if (currentPageHighlights.length === 0) return;
 
-  // Recursively walk through text nodes
-  const walk = (node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      let text = node.textContent;
+  try {
+    const textLayer = document.querySelector(containerSelector);
+    if (!textLayer) {
+      console.warn(`Container with selector "${containerSelector}" not found`);
+      return;
+    }
+
+    // Clear existing highlights
+    const existingMarks = textLayer.querySelectorAll("mark");
+    existingMarks.forEach(mark => {
+      const parent = mark.parentNode;
+      while (mark.firstChild) {
+        parent.insertBefore(mark.firstChild, mark);
+      }
+      parent.removeChild(mark);
+    });
+
+    // Find and highlight text nodes
+    const walker = document.createTreeWalker(
+      textLayer,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+
+    const nodesToReplace = [];
+    let node;
+    while (node = walker.nextNode()) {
+      nodesToReplace.push(node);
+    }
+
+    nodesToReplace.forEach(textNode => {
+      let content = textNode.textContent;
+      let hasHighlight = false;
+
       currentPageHighlights.forEach(highlight => {
-        if (text.includes(highlight.text)) {
-          const regex = new RegExp(`(${highlight.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'g');
-          text = text.replace(regex, '<mark class="bg-yellow-300 rounded px-0.5">$1</mark>');
+        if (content.includes(highlight.text)) {
+          hasHighlight = true;
+          // Create a regex to match the text
+          const escapedText = highlight.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`(${escapedText})`, 'g');
+          content = content.replace(
+            regex,
+            '<mark class="bg-yellow-300 rounded px-0.5">$1</mark>'
+          );
         }
       });
-      
-      if (text !== node.textContent) {
-        const span = document.createElement('span');
-        span.innerHTML = text;
-        node.parentNode.replaceChild(span, node);
-      }
-    } else if (node.nodeType === Node.ELEMENT_NODE && node.nodeName !== 'SCRIPT' && node.nodeName !== 'STYLE') {
-      Array.from(node.childNodes).forEach(walk);
-    }
-  };
 
-  walk(element);
+      if (hasHighlight) {
+        const span = document.createElement('span');
+        span.innerHTML = content;
+        textNode.parentNode.replaceChild(span, textNode);
+      }
+    });
+  } catch (error) {
+    console.warn("Error highlighting text in PDF:", error);
+  }
 };
 
-export default { renderTextWithHighlights, highlightTextInElement };
+export default { renderTextWithHighlights, highlightTextInPDF };

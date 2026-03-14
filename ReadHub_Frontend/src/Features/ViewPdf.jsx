@@ -7,7 +7,7 @@ import axiosConfig from "../Util/axiosConfig";
 import { apiEndpoints } from "../Util/apiEndpoints";
 import CustomTextViewer from "../Components/CustomTextViewer";
 import EpubReader from "../Components/EpubReader";
-import { highlightTextInElement } from "../Components/HighlightRenderer";
+import { highlightTextInPDF } from "../Components/HighlightRenderer";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -80,14 +80,12 @@ const ViewPdf = () => {
   // Apply highlights to PDF text layer after rendering
   useEffect(() => {
     if (viewMode === "pdf" && selectedFile2?.id) {
-      // Delay to ensure Page component has rendered
+      // Delay to ensure Page component has rendered and text layer is available
       const timeoutId = setTimeout(() => {
-        const textLayer = document.querySelector(".react-pdf__Page__textContent");
-        if (textLayer) {
-          const pageHighlights = getHighlights(selectedFile2.id);
-          highlightTextInElement(textLayer, pageHighlights, pageNumber);
-        }
-      }, 100);
+        const pageHighlights = getHighlights(selectedFile2.id);
+        // Use the correct selector for react-pdf text layer
+        highlightTextInPDF(".react-pdf__Page__textContent", pageHighlights, pageNumber);
+      }, 150);
 
       return () => clearTimeout(timeoutId);
     }
@@ -221,11 +219,21 @@ const ViewPdf = () => {
       alert("Please select some text first");
       return;
     }
+
+    // Use bookId if available, otherwise use id (but bookId should be the MongoDB _id)
+    const bookId = selectedFile2.bookId || selectedFile2.id;
+    
+    // Validate bookId is available
+    if (!bookId) {
+      alert("Error: Book ID not available. Please select a different file.");
+      console.error("Missing bookId for file:", selectedFile2);
+      return;
+    }
     
     setSaving(true);
     try {
       const payload = {
-        bookId: selectedFile2.id,
+        bookId: bookId,
         content: selectedText.trim(),
         pageNumber: pageNumber,
       };
