@@ -181,16 +181,39 @@ const ViewPdf = () => {
       return;
     }
 
+    // Check if text is empty or only whitespace
+    const trimmedText = selectedText.trim();
+    if (!trimmedText) {
+      alert("Cannot highlight empty text");
+      return;
+    }
+
     // Save ONLY to local highlights (FileContext)
     // Do NOT save to backend API
     addHighlight(selectedFile2.id, {
-      text: selectedText,
+      text: trimmedText,
       page: pageNumber,
       timestamp: new Date().toISOString(),
       saved: false,
     });
 
-    console.log("Text highlighted locally:", selectedText);
+    console.log("Text highlighted locally:", trimmedText);
+    
+    // Apply visual highlight effect to selected text
+    try {
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const span = document.createElement("span");
+        span.className = "highlight-permanent";
+        span.style.backgroundColor = "#FFFF00";
+        span.style.opacity = "0.6";
+        range.surroundContents(span);
+      }
+    } catch (err) {
+      console.warn("Could not apply visual highlighting:", err);
+    }
+    
     setShowPopup(false);
     setSelectedText("");
     // Clear browser selection
@@ -202,18 +225,34 @@ const ViewPdf = () => {
       alert("Please select text first");
       return;
     }
+
+    // Check if text is empty or only whitespace
+    const trimmedText = selectedText.trim();
+    if (!trimmedText) {
+      alert("Cannot save empty text");
+      return;
+    }
+    
+    // Validate that bookId looks like a MongoDB ObjectId (24 hex characters)
+    const isValidObjectId = /^[0-9a-f]{24}$/i.test(selectedFile2.id);
+    if (!isValidObjectId) {
+      alert(
+        "Cannot save note: This file was not imported from your library. \nPlease use 'Save' only for books added to your library."
+      );
+      return;
+    }
     
     setSaving(true);
     try {
       console.log("Saving note with:", {
         bookId: selectedFile2.id,
-        content: selectedText,
+        content: trimmedText,
         pageNumber: pageNumber,
       });
 
       const response = await axiosConfig.post(apiEndpoints.NOTES, {
         bookId: selectedFile2.id,
-        content: selectedText,
+        content: trimmedText,
         pageNumber: pageNumber,
       });
 
@@ -407,9 +446,20 @@ const ViewPdf = () => {
           <h2 className="text-tittle_Medium font-medium text-[14px] leading-[20px] truncate">
             {selectedFile2.name}
           </h2>
-          <h2 className="font-bold text-[20px] leading-[185%] pb-5">
-            Page {pageNumber} of {numPages}
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-[20px] leading-[185%] pb-5">
+              Page {pageNumber} of {numPages}
+            </h2>
+            {/* Highlight counter badge */}
+            {getHighlights(selectedFile2?.id)?.length > 0 && (
+              <div className="bg-yellow-100 border-2 border-yellow-400 rounded-full px-3 py-1 mb-5 flex items-center gap-2">
+                <span className="text-yellow-700 font-bold text-sm">✓</span>
+                <span className="text-yellow-700 font-medium text-sm">
+                  {getHighlights(selectedFile2?.id).length} highlight{getHighlights(selectedFile2?.id).length !== 1 ? "s" : ""}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
         <div {...swipeHandlers}>
           {/* Toggle between PDF and Text view */}
