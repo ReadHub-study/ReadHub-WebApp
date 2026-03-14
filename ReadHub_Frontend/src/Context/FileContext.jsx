@@ -155,13 +155,6 @@ export function FileProvider({ children }) {
     setSelectedFile(file);
   };
 
-  const deleteFile = (fileId) => {
-    setFiles((prev) => prev.filter((f) => f.id !== fileId));
-    if (selectedFile2?.id === fileId) {
-      setSelectedFile(null);
-    }
-  };
-
   const addHighlight = useCallback((fileId, highlight) => {
     setHighlights((prev) => {
       const fileHighlights = prev[fileId] || [];
@@ -195,9 +188,9 @@ export function FileProvider({ children }) {
     }));
   }, []);
 
-  const getProgress = (file) => {
-    if (!file.numPages || !file.currentPage) return 0;
-    return Math.round((file.currentPage / file.numPages) * 100);
+  const getProgress = (currentPage, totalPages) => {
+    if (!totalPages || !currentPage) return 0;
+    return Math.round((currentPage / totalPages) * 100);
   };
 
   return (
