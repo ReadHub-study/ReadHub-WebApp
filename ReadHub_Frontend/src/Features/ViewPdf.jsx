@@ -7,6 +7,7 @@ import axiosConfig from "../Util/axiosConfig";
 import { apiEndpoints } from "../Util/apiEndpoints";
 import CustomTextViewer from "../Components/CustomTextViewer";
 import EpubReader from "../Components/EpubReader";
+import { highlightTextInElement } from "../Components/HighlightRenderer";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -75,6 +76,22 @@ const ViewPdf = () => {
       );
     }
   }, [viewMode, selectedFile2?.currentPage]);
+
+  // Apply highlights to PDF text layer after rendering
+  useEffect(() => {
+    if (viewMode === "pdf" && selectedFile2?.id) {
+      // Delay to ensure Page component has rendered
+      const timeoutId = setTimeout(() => {
+        const textLayer = document.querySelector(".react-pdf__Page__textContent");
+        if (textLayer) {
+          const pageHighlights = getHighlights(selectedFile2.id);
+          highlightTextInElement(textLayer, pageHighlights, pageNumber);
+        }
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [viewMode, pageNumber, selectedFile2?.id, getHighlights]);
 
   // Handle text selection
   const handleTextSelection = () => {
@@ -176,44 +193,22 @@ const ViewPdf = () => {
   };
 
   const handleHighlight = () => {
-    if (!selectedText || !selectedFile2?.id) {
-      alert("Please select text first");
-      return;
-    }
-
-    // Check if text is empty or only whitespace
-    const trimmedText = selectedText.trim();
-    if (!trimmedText) {
-      alert("Cannot highlight empty text");
+    // Validate text is not empty or whitespace-only
+    if (!selectedText || selectedText.trim().length === 0 || !selectedFile2?.id) {
+      alert("Please select some text first");
       return;
     }
 
     // Save ONLY to local highlights (FileContext)
     // Do NOT save to backend API
     addHighlight(selectedFile2.id, {
-      text: trimmedText,
+      text: selectedText.trim(),
       page: pageNumber,
       timestamp: new Date().toISOString(),
       saved: false,
     });
 
-    console.log("Text highlighted locally:", trimmedText);
-    
-    // Apply visual highlight effect to selected text
-    try {
-      const selection = window.getSelection();
-      if (selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        const span = document.createElement("span");
-        span.className = "highlight-permanent";
-        span.style.backgroundColor = "#FFFF00";
-        span.style.opacity = "0.6";
-        range.surroundContents(span);
-      }
-    } catch (err) {
-      console.warn("Could not apply visual highlighting:", err);
-    }
-    
+    console.log("Text highlighted locally:", selectedText);
     setShowPopup(false);
     setSelectedText("");
     // Clear browser selection
@@ -221,53 +216,40 @@ const ViewPdf = () => {
   };
 
   const handleSaveNote = async () => {
-    if (!selectedText || !selectedFile2?.id) {
-      alert("Please select text first");
-      return;
-    }
-
-    // Check if text is empty or only whitespace
-    const trimmedText = selectedText.trim();
-    if (!trimmedText) {
-      alert("Cannot save empty text");
-      return;
-    }
-    
-    // Validate that bookId looks like a MongoDB ObjectId (24 hex characters)
-    const isValidObjectId = /^[0-9a-f]{24}$/i.test(selectedFile2.id);
-    if (!isValidObjectId) {
-      alert(
-        "Cannot save note: This file was not imported from your library. \nPlease use 'Save' only for books added to your library."
-      );
+    // Validate text is not empty or whitespace-only
+    if (!selectedText || selectedText.trim().length === 0 || !selectedFile2?.id) {
+      alert("Please select some text first");
       return;
     }
     
     setSaving(true);
     try {
-      console.log("Saving note with:", {
+      const payload = {
         bookId: selectedFile2.id,
-        content: trimmedText,
+        content: selectedText.trim(),
         pageNumber: pageNumber,
-      });
+      };
 
-      const response = await axiosConfig.post(apiEndpoints.NOTES, {
-        bookId: selectedFile2.id,
-        content: trimmedText,
-        pageNumber: pageNumber,
-      });
+      console.log("Saving note with:", payload);
+
+      const response = await axiosConfig.post(apiEndpoints.NOTES, payload);
 
       console.log("Note saved successfully:", response.data);
 
-      // Also add to local highlights
+      // Also add to local highlights with saved flag
       addHighlight(selectedFile2.id, {
-        text: selectedText,
+        text: selectedText.trim(),
         page: pageNumber,
         timestamp: new Date().toISOString(),
         saved: true,
       });
+      
       setShowPopup(false);
       setSelectedText("");
       alert("Note saved successfully!");
+      
+      // Clear browser selection
+      window.getSelection().removeAllRanges();
     } catch (error) {
       console.error("Error saving note:", error);
       alert(`Failed to save note: ${error.response?.data?.message || error.message}`);
@@ -446,20 +428,9 @@ const ViewPdf = () => {
           <h2 className="text-tittle_Medium font-medium text-[14px] leading-[20px] truncate">
             {selectedFile2.name}
           </h2>
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-[20px] leading-[185%] pb-5">
-              Page {pageNumber} of {numPages}
-            </h2>
-            {/* Highlight counter badge */}
-            {getHighlights(selectedFile2?.id)?.length > 0 && (
-              <div className="bg-yellow-100 border-2 border-yellow-400 rounded-full px-3 py-1 mb-5 flex items-center gap-2">
-                <span className="text-yellow-700 font-bold text-sm">✓</span>
-                <span className="text-yellow-700 font-medium text-sm">
-                  {getHighlights(selectedFile2?.id).length} highlight{getHighlights(selectedFile2?.id).length !== 1 ? "s" : ""}
-                </span>
-              </div>
-            )}
-          </div>
+          <h2 className="font-bold text-[20px] leading-[185%] pb-5">
+            Page {pageNumber} of {numPages}
+          </h2>
         </div>
         <div {...swipeHandlers}>
           {/* Toggle between PDF and Text view */}

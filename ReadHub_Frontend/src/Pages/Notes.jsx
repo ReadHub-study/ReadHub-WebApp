@@ -31,13 +31,11 @@ const Notes = () => {
   // Get local highlights from FileContext
   const localHighlights = files.flatMap((file) => {
     const fileHighlights = getHighlights(file.id) || [];
-    return fileHighlights
-      .filter((highlight) => highlight && highlight.text && highlight.text.trim()) // Filter out empty highlights
-      .map((highlight) => ({
-        ...highlight,
-        bookId: file.id,
-        bookTitle: file.name,
-      }));
+    return fileHighlights.map((highlight) => ({
+      ...highlight,
+      bookId: file.id,
+      bookTitle: file.name,
+    }));
   });
 
   // Group API notes by book

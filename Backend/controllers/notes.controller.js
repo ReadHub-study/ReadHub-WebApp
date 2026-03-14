@@ -16,6 +16,14 @@ export const createNote = async (req, res) => {
       })
     }
 
+    // Validate that content is not empty or whitespace
+    const trimmedContent = content.trim()
+    if (trimmedContent.length === 0) {
+      return res.status(400).json({
+        message: 'Content cannot be empty or contain only whitespace',
+      })
+    }
+
     const checkBook = await Book.findById(bookId)
     if (!checkBook) {
       return res.status(404).json({ message: 'Book not found' })
@@ -23,7 +31,7 @@ export const createNote = async (req, res) => {
 
     const newNote = new Notes({
       book: bookId,
-      content,
+      content: trimmedContent,
       page: pageNumber,
       createdBy: userId,
     })

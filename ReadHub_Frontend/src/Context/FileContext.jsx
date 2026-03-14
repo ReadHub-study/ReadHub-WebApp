@@ -46,10 +46,22 @@ export function FileProvider({ children }) {
   };
 
   const addHighlight = useCallback((fileId, highlight) => {
-    setHighlights((prev) => ({
-      ...prev,
-      [fileId]: [...(prev[fileId] || []), { ...highlight, id: Date.now() }],
-    }));
+    setHighlights((prev) => {
+      const fileHighlights = prev[fileId] || [];
+      // Check if this exact highlight already exists (to avoid duplicates)
+      const exists = fileHighlights.some(
+        h => h.text === highlight.text && h.page === highlight.page
+      );
+      
+      if (exists) {
+        return prev;
+      }
+      
+      return {
+        ...prev,
+        [fileId]: [...fileHighlights, { ...highlight, id: Date.now() }],
+      };
+    });
   }, []);
 
   const getHighlights = useCallback((fileId) => {

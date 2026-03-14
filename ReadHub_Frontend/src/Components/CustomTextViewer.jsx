@@ -2,6 +2,7 @@ import React, { useState, useEffect, use, useRef } from "react";
 import { useSwipeable } from "react-swipeable";
 import { extractTextWithLayout } from "../Utils/pdfUtils";
 import { useFiles } from "../Context/FileContext";
+import { renderTextWithHighlights } from "./HighlightRenderer";
 
 const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
   const [pages, setpages] = useState([]);
@@ -115,6 +116,10 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
     preventScrollOnSwipe: false,
     trackMouse: true,
   });
+
+  // Get highlights for current file
+  const currentHighlights = file?.id ? getHighlights(file.id) : [];
+
   if (loading) {
     return <div>Extracting text from PDF...</div>;
   }
@@ -138,7 +143,7 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
                         style={{ fontSize: `${scale}px` }}
                         className={`font-medium leading-[185%] tracking-[-0.4px] mb-4 ${theme ? "text-[#ECF0F8]" : "text-[#1A1A1A]"}`}
                       >
-                        {paragraph}
+                        {renderTextWithHighlights(paragraph, currentHighlights, currentPage + 1)}
                       </p>
                     </div>
                   ),
