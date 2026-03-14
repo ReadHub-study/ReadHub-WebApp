@@ -107,6 +107,7 @@ export function FileProvider({ children }) {
         addHighlight,
         getHighlights,
         removeHighlight,
+        highlights,
       }}
     >
       {children}

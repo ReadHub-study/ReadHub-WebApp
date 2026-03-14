@@ -3,6 +3,7 @@ import React from "react";
 /**
  * Renders text with highlighted portions
  * Handles highlights that may span multiple lines/elements
+ * Returns proper JSX that React can render
  */
 export const renderTextWithHighlights = (text, highlights = [], pageNumber) => {
   if (!highlights || highlights.length === 0) {
@@ -18,28 +19,65 @@ export const renderTextWithHighlights = (text, highlights = [], pageNumber) => {
 
   let result = [];
   let lastIndex = 0;
-  const sortedHighlights = currentPageHighlights
-    .filter(h => h.text && text.includes(h.text))
-    .sort((a, b) => text.indexOf(a.text) - text.indexOf(b.text));
-
-  sortedHighlights.forEach((highlight, idx) => {
-    const startIndex = text.indexOf(highlight.text, lastIndex);
+  
+  // Find all highlight matches and their positions
+  const highlightMatches = [];
+  
+  currentPageHighlights.forEach((highlight) => {
+    if (!highlight.text) return;
     
-    if (startIndex !== -1) {
-      // Add text before highlight
-      if (startIndex > lastIndex) {
-        result.push(text.substring(lastIndex, startIndex));
-      }
+    // Find all occurrences of this highlight in the text
+    let searchIndex = 0;
+    while (searchIndex < text.length) {
+      const foundIndex = text.indexOf(highlight.text, searchIndex);
+      if (foundIndex === -1) break;
       
-      // Add highlighted text
-      result.push(
-        <mark key={`highlight-${idx}`} className="bg-yellow-300 rounded px-0.5">
-          {highlight.text}
-        </mark>
-      );
+      highlightMatches.push({
+        startIndex: foundIndex,
+        endIndex: foundIndex + highlight.text.length,
+        text: highlight.text,
+        highlightId: highlight.id,
+      });
       
-      lastIndex = startIndex + highlight.text.length;
+      searchIndex = foundIndex + 1;
     }
+  });
+
+  // Sort by start index
+  highlightMatches.sort((a, b) => a.startIndex - b.startIndex);
+
+  // Remove overlapping highlights (keep the first one)
+  const nonOverlapping = [];
+  highlightMatches.forEach((match) => {
+    const overlaps = nonOverlapping.some(
+      (existing) =>
+        (match.startIndex >= existing.startIndex && match.startIndex < existing.endIndex) ||
+        (match.endIndex > existing.startIndex && match.endIndex <= existing.endIndex)
+    );
+    if (!overlaps) {
+      nonOverlapping.push(match);
+    }
+  });
+
+  // Build the result
+  nonOverlapping.forEach((match, idx) => {
+    // Add text before highlight
+    if (match.startIndex > lastIndex) {
+      result.push(text.substring(lastIndex, match.startIndex));
+    }
+    
+    // Add highlighted text
+    result.push(
+      <mark 
+        key={`highlight-${match.highlightId}-${idx}`} 
+        className="bg-yellow-300 rounded px-0.5"
+        style={{ backgroundColor: '#ffff00', padding: '0 2px', margin: '0 -2px' }}
+      >
+        {match.text}
+      </mark>
+    );
+    
+    lastIndex = match.endIndex;
   });
 
   // Add remaining text
@@ -47,7 +85,8 @@ export const renderTextWithHighlights = (text, highlights = [], pageNumber) => {
     result.push(text.substring(lastIndex));
   }
 
-  return result.length > 0 ? result : text;
+  // Return wrapped in fragment to ensure proper rendering
+  return result.length > 0 ? <>{result}</> : text;
 };
 
 /**

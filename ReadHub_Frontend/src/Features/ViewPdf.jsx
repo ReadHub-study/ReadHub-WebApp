@@ -199,12 +199,21 @@ const ViewPdf = () => {
 
     // Save ONLY to local highlights (FileContext)
     // Do NOT save to backend API
-    addHighlight(selectedFile2.id, {
+    const highlightData = {
       text: selectedText.trim(),
       page: pageNumber,
       timestamp: new Date().toISOString(),
       saved: false,
-    });
+    };
+    
+    console.log("=== HIGHLIGHTING ===");
+    console.log("File ID:", selectedFile2.id);
+    console.log("File Name:", selectedFile2.name);
+    console.log("Page:", pageNumber);
+    console.log("Selected Text:", selectedText.trim());
+    console.log("Highlight Data:", highlightData);
+    
+    addHighlight(selectedFile2.id, highlightData);
 
     console.log("Text highlighted locally:", selectedText);
     setShowPopup(false);

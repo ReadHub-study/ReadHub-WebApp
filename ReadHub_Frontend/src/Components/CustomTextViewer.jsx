@@ -11,7 +11,7 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [minChars, setMinChars] = useState(200);
 
-  const { updateCurrentPage, getHighlights } = useFiles();
+  const { updateCurrentPage } = useFiles();
 
   const isInitialLoad = useRef(true);
   const hasLoadedSavedPage = useRef(false);
@@ -117,8 +117,20 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
     trackMouse: true,
   });
 
+  // Track highlights to ensure re-render when they change
+  const { highlights: allHighlights } = useFiles();
+  const [highlights, setHighlights] = useState([]);
+  
+  useEffect(() => {
+    if (file?.id && allHighlights) {
+      const fileHighlights = allHighlights[file.id] || [];
+      setHighlights(fileHighlights);
+      console.log("CustomTextViewer: Highlights updated for file", file.id, "- Page", currentPage + 1, "has", fileHighlights.filter(h => h.page === currentPage + 1).length, "highlights");
+    }
+  }, [file?.id, allHighlights]);
+
   // Get highlights for current file
-  const currentHighlights = file?.id ? getHighlights(file.id) : [];
+  const currentHighlights = highlights;
 
   if (loading) {
     return <div>Extracting text from PDF...</div>;
