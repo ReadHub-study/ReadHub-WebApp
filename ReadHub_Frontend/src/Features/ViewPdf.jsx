@@ -175,50 +175,26 @@ const ViewPdf = () => {
     setScaleFont((prev) => Math.max(prev - 2, 14));
   };
 
-  const handleHighlight = async () => {
+  const handleHighlight = () => {
     if (!selectedText || !selectedFile2?.id) {
       alert("Please select text first");
       return;
     }
 
-    setSaving(true);
-    try {
-      // Save to backend API
-      const response = await axiosConfig.post(apiEndpoints.NOTES, {
-        bookId: selectedFile2.id,
-        content: selectedText,
-        pageNumber: pageNumber,
-      });
+    // Save ONLY to local highlights (FileContext)
+    // Do NOT save to backend API
+    addHighlight(selectedFile2.id, {
+      text: selectedText,
+      page: pageNumber,
+      timestamp: new Date().toISOString(),
+      saved: false,
+    });
 
-      console.log("Highlight saved:", response.data);
-
-      // Also add to local highlights
-      addHighlight(selectedFile2.id, {
-        text: selectedText,
-        page: pageNumber,
-        timestamp: new Date().toISOString(),
-        saved: true,
-      });
-
-      setShowPopup(false);
-      setSelectedText("");
-      // Clear browser selection
-      window.getSelection().removeAllRanges();
-    } catch (error) {
-      console.error("Error saving highlight:", error);
-      // Still save locally even if backend fails
-      addHighlight(selectedFile2.id, {
-        text: selectedText,
-        page: pageNumber,
-        timestamp: new Date().toISOString(),
-        saved: false,
-      });
-      setShowPopup(false);
-      setSelectedText("");
-      window.getSelection().removeAllRanges();
-    } finally {
-      setSaving(false);
-    }
+    console.log("Text highlighted locally:", selectedText);
+    setShowPopup(false);
+    setSelectedText("");
+    // Clear browser selection
+    window.getSelection().removeAllRanges();
   };
 
   const handleSaveNote = async () => {

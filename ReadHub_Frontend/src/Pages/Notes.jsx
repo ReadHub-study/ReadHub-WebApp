@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axiosConfig from "../Util/axiosConfig";
 import { apiEndpoints } from "../Util/apiEndpoints";
+import { useFiles } from "../Context/FileContext";
 
 const Notes = () => {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { files, getHighlights } = useFiles();
 
   useEffect(() => {
     fetchNotes();
@@ -26,7 +28,17 @@ const Notes = () => {
     }
   };
 
-  // Group notes by book
+  // Get local highlights from FileContext
+  const localHighlights = files.flatMap((file) => {
+    const fileHighlights = getHighlights(file.id) || [];
+    return fileHighlights.map((highlight) => ({
+      ...highlight,
+      bookId: file.id,
+      bookTitle: file.name,
+    }));
+  });
+
+  // Group API notes by book
   const groupedNotes = notes.reduce((acc, note) => {
     const bookId = note.book?._id || "unknown";
     const bookTitle = note.book?.title || "Unknown Book";
@@ -40,8 +52,40 @@ const Notes = () => {
     return acc;
   }, {});
 
-  const totalHighlights = notes.length;
-  const totalBooks = Object.keys(groupedNotes).length;
+  // Group local highlights by file
+  const groupedLocalHighlights = localHighlights.reduce((acc, highlight) => {
+    const bookId = highlight.bookId;
+    const bookTitle = highlight.bookTitle;
+    if (!acc[bookId]) {
+      acc[bookId] = {
+        title: bookTitle,
+        highlights: [],
+      };
+    }
+    acc[bookId].highlights.push(highlight);
+    return acc;
+  }, {});
+
+  // Combine both local highlights and API notes
+  const allNotes = [
+    ...localHighlights.map((h) => ({
+      _id: h.id,
+      content: h.text,
+      page: h.page,
+      book: { _id: h.bookId, title: h.bookTitle },
+      isLocal: true,
+    })),
+    ...notes.map((n) => ({ ...n, isLocal: false })),
+  ];
+
+  // Total highlights = local highlights + API notes
+  const totalHighlights = allNotes.length;
+  // Total books from both local and API
+  const totalBooksSet = new Set([
+    ...Object.keys(groupedNotes),
+    ...Object.keys(groupedLocalHighlights),
+  ]);
+  const totalBooks = totalBooksSet.size;
   return (
     <div>
       <div className="px-[16px] pt-[40px] overflow-hidden mb-15">
@@ -87,46 +131,56 @@ const Notes = () => {
           </div>
         </div>
 
-        {notes.length > 0 ? (
+        {/* Stats cards - always show */}
+        <div className="flex justify-between mb-8">
+          <div className="w-[171px] h-[72px] bg-white px-4 justify-center flex flex-col rounded-[13.96px]">
+            <p className="text-primary text-headline_Small leading-7">{totalHighlights}</p>
+            <p className="text-tertiary text-body_Small">
+              Total highlights
+            </p>
+          </div>
+
+          <div className="w-[171px] h-[72px] bg-white px-4 justify-center flex flex-col rounded-[13.96px]">
+            <p className="text-primary text-headline_Small leading-7">{totalBooks}</p>
+            <p className="text-tertiary text-body_Small">Books</p>
+          </div>
+        </div>
+
+        {allNotes.length > 0 ? (
           <div>
-            {" "}
-            <div className="flex justify-between mb-8">
-              <div className="w-[171px] h-[72px] bg-white px-4 justify-center flex flex-col rounded-[13.96px]">
-                <p className="text-primary text-headline_Small leading-7">{totalHighlights}</p>
-                <p className="text-tertiary text-body_Small">
-                  Total highlights
-                </p>
-              </div>
-
-              <div className="w-[171px] h-[72px] bg-white px-4 justify-center flex flex-col rounded-[13.96px]">
-                <p className="text-primary text-headline_Small leading-7">{totalBooks}</p>
-                <p className="text-tertiary text-body_Small">Books</p>
-              </div>
-            </div>
             <div>
-              {Object.entries(groupedNotes).map(([bookId, bookData]) => (
-                <div key={bookId}>
-                  <span className="text-black text-tittle_Medium font-semibold flex mb-3">
-                    <img src="/import_contacts.svg" alt="" />
-                    <p className="ml-1">{bookData.title}</p>
-                  </span>
+              {Array.from(totalBooksSet).map((bookId) => {
+                const localBooksHighlights = groupedLocalHighlights[bookId]?.highlights || [];
+                const apiBooksNotes = groupedNotes[bookId]?.notes || [];
+                const bookTitle = groupedLocalHighlights[bookId]?.title || groupedNotes[bookId]?.title || "Unknown Book";
+                const allBookNotes = [...localBooksHighlights, ...apiBooksNotes];
 
-                  {bookData.notes.map((note, index) => (
-                    <div key={note._id || index}>
-                      <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
-                        <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">
-                          <p className=" text-body_Medium font-medium">
-                            "{note.content}"
-                          </p>
-                          <p className="text-[#5f5f61] text-body_Small mt-1">
-                            Page {note.page}
-                          </p>
+                if (allBookNotes.length === 0) return null;
+
+                return (
+                  <div key={bookId}>
+                    <span className="text-black text-tittle_Medium font-semibold flex mb-3">
+                      <img src="/import_contacts.svg" alt="" />
+                      <p className="ml-1">{bookTitle}</p>
+                    </span>
+
+                    {allBookNotes.map((note, index) => (
+                      <div key={note._id || index}>
+                        <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
+                          <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">
+                            <p className=" text-body_Medium font-medium">
+                              "{note.content}"
+                            </p>
+                            <p className="text-[#5f5f61] text-body_Small mt-1">
+                              Page {note.page} {note.isLocal ? "(Local)" : ""}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ) : loading ? (
