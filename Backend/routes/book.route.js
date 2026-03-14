@@ -12,7 +12,7 @@ const router = express.Router()
 
 /**
  * @swagger
- * /api/books/upload:
+ * /api/book/upload:
  *   post:
  *     summary: Upload a new book
  *     tags: [Books]

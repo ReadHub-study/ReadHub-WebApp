@@ -19,7 +19,11 @@ dotenv.config()
 const app = express()
 
 // Middleware
-const allowedOrigin = [process.env.FRONTEND_URL, process.env.WAITLIST_URL]
+const allowedOrigin = [
+  process.env.FRONTEND_URL,
+  process.env.WAITLIST_URL,
+  process.env.DEVELOPMENT_TEST,
+]
 
 app.use(
   cors({

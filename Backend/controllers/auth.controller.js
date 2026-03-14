@@ -50,33 +50,26 @@ export const login = async (req, res) => {
     const { email, password } = req.body
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required' })
+      return res.status(400).json({ message: 'Email and password required' })
     }
 
     const user = await User.findOne({ email })
     if (!user) {
-      return res.status(400).json({ error: 'Invalid email or password' })
+      return res.status(400).json({ message: 'Invalid email or password' })
     }
 
-    if (user.provider === 'google') {
-      return res.status(400).json({
-        error: 'Account created with Google. Please login with Google',
-      })
+    if (!user.password || !user.provider.includes('local')) {
+      return res.status(400).json({ message: 'Login with Google' })
     }
 
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid email or password' })
+      return res.status(400).json({ message: 'Invalid email or password' })
     }
 
-    const accessToken = generateAccessToken({
-      id: user._id,
-      email: user.email,
-    })
+    const accessToken = generateAccessToken({ id: user._id })
 
-    const refreshToken = generateRefreshToken({
-      id: user._id,
-    })
+    const refreshToken = generateRefreshToken({ id: user._id })
 
     await User.updateOne({ _id: user._id }, { $set: { refreshToken } })
 
@@ -91,7 +84,7 @@ export const login = async (req, res) => {
       accessToken,
     })
   } catch (err) {
-    return res.status(500).json({ error: 'Login failed' })
+    return res.status(500).json({ message: 'Login failed' })
   }
 }
 
@@ -113,10 +106,10 @@ export const googleAuth = async (req, res) => {
     let user = await User.findOne({ email })
 
     if (user) {
-      if (user.provider !== 'google') {
-        return res.status(400).json({
-          error: 'Account exists. Login with email and password',
-        })
+      if (!user.provider.includes('google')) {
+        user.googleId = googleId
+        user.provider.push('google')
+        await user.save()
       }
     }
 
@@ -125,18 +118,13 @@ export const googleAuth = async (req, res) => {
         email,
         username: name.replace(/\s+/g, '').toLowerCase(),
         googleId,
-        provider: 'google',
+        provider: ['google'],
       })
     }
 
-    const accessToken = generateAccessToken({
-      id: user._id,
-      email: user.email,
-    })
+    const accessToken = generateAccessToken({ id: user._id })
 
-    const refreshToken = generateRefreshToken({
-      id: user._id,
-    })
+    const refreshToken = generateRefreshToken({ id: user._id })
 
     await User.updateOne({ _id: user._id }, { $set: { refreshToken } })
 

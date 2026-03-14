@@ -70,8 +70,9 @@ const Login = () => {
       });
       if (response.status === 200) {
         toast.success("Logged in successfully.");
-        localStorage.setItem("accessToken", response.data.accessToken);
-        navigate("/");
+        localStorage.setItem("refreshToken", response.data.refreshToken);
+        localStorage.setItem("token", response.data.accessToken);
+        navigate("/home");
       }
     } catch (err) {
       setError(

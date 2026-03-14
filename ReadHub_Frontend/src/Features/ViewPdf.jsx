@@ -3,9 +3,11 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { useFiles } from "../Context/FileContext";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useSwipeable } from "react-swipeable";
-
+import axiosConfig from "../Util/axiosConfig";
+import { apiEndpoints } from "../Util/apiEndpoints";
 import CustomTextViewer from "../Components/CustomTextViewer";
 import EpubReader from "../Components/EpubReader";
+import { highlightTextInPDF } from "../Components/HighlightRenderer";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -19,6 +21,8 @@ const ViewPdf = () => {
     loading,
     selectFile,
     files,
+    addHighlight,
+    getHighlights,
     fetchBooks,
   } = useFiles();
 
@@ -37,6 +41,14 @@ const ViewPdf = () => {
   const [hasFetched, setHasFetched] = useState(false);
 
   // Fetch on mount if files is empty
+
+  // Highlight and popup states
+  const [selectedText, setSelectedText] = useState("");
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [showPopup, setShowPopup] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const popupRef = useRef(null);
+
   useEffect(() => {
     if (files.length === 0) {
       fetchBooks().then(() => setHasFetched(true));
@@ -61,6 +73,78 @@ const ViewPdf = () => {
 
   const savedPage = selectedFile2?.lastPageRead || 1;
   const pageNumber = currentPage[fileId] || savedPage;
+
+  // Apply highlights to PDF text layer after rendering
+  useEffect(() => {
+    if (viewMode === "pdf" && selectedFile2?.id) {
+      // Delay to ensure Page component has rendered and text layer is available
+      const timeoutId = setTimeout(() => {
+        const pageHighlights = getHighlights(selectedFile2.id);
+        // Use the correct selector for react-pdf text layer
+        // Try multiple selectors as the structure may vary
+        highlightTextInPDF(
+          ".react-pdf__Page__textContent",
+          pageHighlights,
+          pageNumber,
+        );
+      }, 200);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [viewMode, pageNumber, selectedFile2?.id]);
+
+  // Handle text selection
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    const selectedText = selection.toString().trim();
+
+    if (selectedText.length > 0) {
+      setSelectedText(selectedText);
+      try {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+
+        // Calculate position relative to viewport and adjust for viewport
+        let top = rect.top + window.scrollY - 60; // 60px above selection
+        let left = rect.left + rect.width / 2;
+
+        // Ensure popup doesn't go off-screen
+        if (top < 10) {
+          top = rect.bottom + window.scrollY + 10; // Position below if not enough space above
+        }
+
+        setPopupPosition({
+          x: left,
+          y: top,
+        });
+        console.log("Text selected:", selectedText, "Position:", {
+          x: left,
+          y: top,
+        });
+        setShowPopup(true);
+      } catch (err) {
+        console.warn("Could not calculate popup position:", err);
+        setShowPopup(false);
+      }
+    } else {
+      setShowPopup(false);
+    }
+  };
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (popupRef.current && !popupRef.current.contains(e.target)) {
+        setShowPopup(false);
+      }
+    };
+
+    if (showPopup) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showPopup]);
 
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
@@ -117,6 +201,113 @@ const ViewPdf = () => {
 
   const reduceFont = () => {
     setScaleFont((prev) => Math.max(prev - 2, 14));
+  };
+
+  const handleHighlight = () => {
+    // Validate text is not empty or whitespace-only
+    if (
+      !selectedText ||
+      selectedText.trim().length === 0 ||
+      !selectedFile2?.id
+    ) {
+      alert("Please select some text first");
+      return;
+    }
+
+    // Save ONLY to local highlights (FileContext)
+    // Do NOT save to backend API
+    const highlightData = {
+      text: selectedText.trim(),
+      page: pageNumber,
+      timestamp: new Date().toISOString(),
+      saved: false,
+    };
+
+    console.log("=== HIGHLIGHTING ===");
+    console.log("File ID:", selectedFile2.id);
+    console.log("File Name:", selectedFile2.name);
+    console.log("Page:", pageNumber);
+    console.log("Selected Text:", selectedText.trim());
+    console.log("Highlight Data:", highlightData);
+
+    addHighlight(selectedFile2.id, highlightData);
+
+    console.log("Text highlighted locally:", selectedText);
+    setShowPopup(false);
+    setSelectedText("");
+    // Clear browser selection
+    window.getSelection().removeAllRanges();
+  };
+
+  const handleSaveNote = async () => {
+    // Validate text is not empty or whitespace-only
+    if (
+      !selectedText ||
+      selectedText.trim().length === 0 ||
+      !selectedFile2?.id
+    ) {
+      alert("Please select some text first");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // First, add to local highlights with saved flag
+      const localHighlight = {
+        text: selectedText.trim(),
+        page: pageNumber,
+        timestamp: new Date().toISOString(),
+        saved: true,
+      };
+
+      addHighlight(selectedFile2.id, localHighlight);
+
+      // If bookId is available (from backend), also save to backend
+      if (selectedFile2.bookId) {
+        const payload = {
+          bookId: selectedFile2.bookId,
+          content: selectedText.trim(),
+          pageNumber: pageNumber,
+        };
+
+        console.log("Saving note to backend with:", payload);
+
+        try {
+          const response = await axiosConfig.post(apiEndpoints.NOTES, payload);
+          console.log("Note saved to backend successfully:", response.data);
+        } catch (backendError) {
+          console.warn(
+            "Failed to save to backend, but highlight saved locally:",
+            backendError.response?.data?.message || backendError.message,
+          );
+          // Continue - the note is already saved locally
+        }
+      } else {
+        console.log(
+          "Note saved locally (no bookId available for backend sync)",
+        );
+      }
+
+      setShowPopup(false);
+      setSelectedText("");
+      alert("Note saved successfully!");
+
+      // Clear browser selection
+      window.getSelection().removeAllRanges();
+    } catch (error) {
+      console.error("Error saving note:", error);
+      alert(`Failed to save note: ${error.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAISummary = () => {
+    // Placeholder for AI Summary functionality
+    alert("AI Summary feature coming soon!");
+    setShowPopup(false);
+    setSelectedText("");
+    window.getSelection().removeAllRanges();
   };
 
   useEffect(() => {}, [currentPage]);
@@ -287,7 +478,10 @@ const ViewPdf = () => {
           {/* Toggle between PDF and Text view */}
 
           {viewMode === "pdf" ? (
-            <div className=" flex justify-center overflow-hidden w-dvw">
+            <div
+              className=" flex justify-center overflow-hidden w-dvw"
+              onMouseUpCapture={handleTextSelection}
+            >
               <Document
                 file={selectedFile2.fileUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
@@ -310,9 +504,48 @@ const ViewPdf = () => {
               file={selectedFile2}
               theme={darkToggle}
               scale={scaleFont}
+              onTextSelect={handleTextSelection}
             />
           )}
         </div>
+
+        {/* Highlight Popup Menu */}
+        {showPopup && (
+          <div
+            ref={popupRef}
+            className="fixed bg-white text-gray-900 rounded-[12px] p-3 shadow-xl z-50 flex gap-2 flex-wrap justify-center border border-gray-300"
+            style={{
+              left: `${popupPosition.x}px`,
+              top: `${popupPosition.y}px`,
+              transform: "translate(-50%, 0)",
+              maxWidth: "280px",
+              minWidth: "fit-content",
+            }}
+          >
+            <button
+              onClick={handleHighlight}
+              className="px-3 py-2 bg-blue-500 text-white rounded-[8px] text-xs font-medium hover:bg-blue-600 transition-colors whitespace-nowrap"
+              title="Highlight selected text permanently"
+            >
+              ✓ Highlight
+            </button>
+            <button
+              onClick={handleSaveNote}
+              disabled={saving}
+              className="px-3 py-2 bg-green-500 text-white rounded-[8px] text-xs font-medium hover:bg-green-600 transition-colors disabled:opacity-50 whitespace-nowrap"
+              title="Save note to your library"
+            >
+              {saving ? "Saving..." : "💾 Save"}
+            </button>
+            <button
+              onClick={handleAISummary}
+              className="px-3 py-2 bg-purple-500 text-white rounded-[8px] text-xs font-medium hover:bg-purple-600 transition-colors whitespace-nowrap"
+              title="Get AI summary of selected text"
+            >
+              ✨ AI Summary
+            </button>
+          </div>
+        )}
 
         <div className="flex gap-4 mb-4 pt-5 justify-center">
           <button

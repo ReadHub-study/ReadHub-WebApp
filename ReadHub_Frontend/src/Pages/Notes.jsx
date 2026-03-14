@@ -1,23 +1,109 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axiosConfig from "../Util/axiosConfig";
+import { apiEndpoints } from "../Util/apiEndpoints";
+import { useFiles } from "../Context/FileContext";
 
 const Notes = () => {
-  const [notes, setNotes] = useState(false);
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { files, getHighlights } = useFiles();
+
+  useEffect(() => {
+    fetchNotes();
+  }, []);
+
+  const fetchNotes = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosConfig.get(apiEndpoints.NOTES);
+      setNotes(response.data || []);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching notes:", err);
+      setError("Failed to load notes");
+      setNotes([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get local highlights from FileContext
+  // Local highlights that were saved as notes should appear here
+  const localHighlights = files.flatMap((file) => {
+    const fileHighlights = getHighlights(file.id) || [];
+    return fileHighlights
+      .filter((h) => h.saved) // Only include highlights that were saved as notes
+      .map((highlight) => ({
+        ...highlight,
+        bookId: file.id,
+        bookTitle: file.name,
+      }));
+  });
+
+  // Group combined notes by book: both local and API
+  const groupedNotes = {};
+  
+  // Add local saved highlights to grouped notes
+  localHighlights.forEach((h) => {
+    const bookId = h.bookId;
+    const bookTitle = h.bookTitle;
+    if (!groupedNotes[bookId]) {
+      groupedNotes[bookId] = {
+        title: bookTitle,
+        notes: [],
+      };
+    }
+    groupedNotes[bookId].notes.push({
+      _id: h.id,
+      content: h.text,
+      page: h.page,
+      isLocal: true,
+    });
+  });
+  
+  // Add API notes to grouped notes
+  notes.forEach((note) => {
+    const bookId = note.book?._id || "unknown";
+    const bookTitle = note.book?.title || "Unknown Book";
+    if (!groupedNotes[bookId]) {
+      groupedNotes[bookId] = {
+        title: bookTitle,
+        notes: [],
+      };
+    }
+    groupedNotes[bookId].notes.push({
+      ...note,
+      isLocal: false,
+    });
+  });
+
+  // Total highlights = local saved + API notes
+  const totalHighlights = localHighlights.length + notes.length;
+  // Total books = unique books that have notes
+  const totalBooks = Object.keys(groupedNotes).length;
   return (
     <div>
       <div className="px-[16px] pt-[40px] overflow-hidden mb-15">
         <div className="flex justify-between mb-8 items-center">
           <p className="text-black text-tittle_Large">Highlights & Notes</p>
-          <span className="flex w-[40px] h-[40px] rounded-[8.04] bg-white justify-center items-center">
+          <button
+            onClick={() => {
+              fetchNotes();
+            }}
+            className="flex w-[40px] h-[40px] rounded-[8.04] bg-white justify-center items-center hover:bg-gray-100 transition-colors"
+            title="Refresh notes"
+          >
             {" "}
             <svg
-              className="w-[24px] h-[24px]"
+              className={`w-[24px] h-[24px] ${loading ? "animate-spin" : ""}`}
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               fill="currentColor"
             >
               <path d="M13 10H18L12 16L6 10H11V3H13V10ZM4 19H20V12H22V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V12H4V19Z"></path>
             </svg>
-          </span>
+          </button>
         </div>
 
         <div className="bg-white h-[46px] w-full flex rounded-[11px] mb-4">
@@ -41,90 +127,63 @@ const Notes = () => {
           </div>
         </div>
 
-        {notes ? (
+        {/* Stats cards - always show */}
+        <div className="flex justify-between mb-8">
+          <div className="w-[171px] h-[72px] bg-white px-4 justify-center flex flex-col rounded-[13.96px]">
+            <p className="text-primary text-headline_Small leading-7">{totalHighlights}</p>
+            <p className="text-tertiary text-body_Small">
+              Total highlights
+            </p>
+          </div>
+
+          <div className="w-[171px] h-[72px] bg-white px-4 justify-center flex flex-col rounded-[13.96px]">
+            <p className="text-primary text-headline_Small leading-7">{totalBooks}</p>
+            <p className="text-tertiary text-body_Small">Books</p>
+          </div>
+        </div>
+
+        {Object.keys(groupedNotes).length > 0 ? (
           <div>
-            {" "}
-            <div className="flex justify-between mb-8">
-              <div className="w-[171px] h-[72px] bg-white px-4 justify-center flex flex-col rounded-[13.96px]">
-                <p className="text-primary text-headline_Small leading-7">3</p>
-                <p className="text-tertiary text-body_Small">
-                  Total highlights
-                </p>
-              </div>
-
-              <div className="w-[171px] h-[72px] bg-white px-4 justify-center flex flex-col rounded-[13.96px]">
-                <p className="text-primary text-headline_Small leading-7">2</p>
-                <p className="text-tertiary text-body_Small">Books</p>
-              </div>
-            </div>
             <div>
-              <span className="text-black text-tittle_Medium font-semibold flex mb-3">
-                <img src="/import_contacts.svg" alt="" />
-                <p className="ml-1">Atomic Habits</p>
-              </span>
+              {Object.keys(groupedNotes).map((bookId) => {
+                const bookNotes = groupedNotes[bookId]?.notes || [];
+                const bookTitle = groupedNotes[bookId]?.title || "Unknown Book";
 
-              <div>
-                <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
-                  <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">
-                    <p className=" text-body_Medium font-medium">
-                      “You do not rise to the level of your goals. You fall to
-                      the level of your systems.”
-                    </p>
-                    <p className="text-[#5f5f61] text-body_Small mt-1">
-                      Page 27
-                    </p>
-                  </div>
-                </div>
-              </div>
+                if (bookNotes.length === 0) return null;
 
-              <div>
-                <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
-                  <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">
-                    <p className=" text-body_Medium font-medium">
-                      “You do not rise to the level of your goals. You fall to
-                      the level of your systems.”
-                    </p>
-                    <p className="text-[#5f5f61] text-body_Small mt-1">
-                      Page 27
-                    </p>
+                return (
+                  <div key={bookId}>
+                    <span className="text-black text-tittle_Medium font-semibold flex mb-3">
+                      <img src="/import_contacts.svg" alt="" />
+                      <p className="ml-1">{bookTitle}</p>
+                    </span>
+
+                    {bookNotes.map((note, index) => (
+                      <div key={note._id || index}>
+                        <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
+                          <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">
+                            <p className=" text-body_Medium font-medium">
+                              "{note.content}"
+                            </p>
+                            <p className="text-[#5f5f61] text-body_Small mt-1">
+                              Page {note.page}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
-            <div>
-              <span className="text-black text-tittle_Medium font-semibold flex mb-3">
-                <img src="/import_contacts.svg" alt="" />
-                <p className="ml-1">Deep Work</p>
-              </span>
-
-              <div>
-                <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
-                  <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">
-                    <p className=" text-body_Medium font-medium">
-                      “You do not rise to the level of your goals. You fall to
-                      the level of your systems.”
-                    </p>
-                    <p className="text-[#5f5f61] text-body_Small mt-1">
-                      Page 27
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
-                  <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">
-                    <p className=" text-body_Medium font-medium">
-                      “You do not rise to the level of your goals. You fall to
-                      the level of your systems.”
-                    </p>
-                    <p className="text-[#5f5f61] text-body_Small mt-1">
-                      Page 27
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          </div>
+        ) : loading ? (
+          <div className="flex justify-center h-100 items-center">
+            Loading notes...
+          </div>
+        ) : error ? (
+          <div className="flex justify-center h-100 items-center text-red-600">
+            {error}
           </div>
         ) : (
           <div className="flex justify-center h-100 items-center">

@@ -16,7 +16,10 @@ const Settings = () => {
     const [editedEmail, setEditedEmail] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
-    const [readingGoal, setReadingGoal] = useState(60);
+    const [readingGoal, setReadingGoal] = useState(() => {
+        const saved = localStorage.getItem('readingGoal');
+        return saved ? parseInt(saved) : 30;
+    });
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -35,6 +38,11 @@ const Settings = () => {
         fetchUserProfile();
     }, []);
 
+    const handleReadingGoalChange = (value) => {
+        setReadingGoal(value);
+        localStorage.setItem('readingGoal', value);
+    };
+
     const handleEditToggle = () => {
         if (user) {
             setIsEditing(!isEditing);
@@ -43,6 +51,10 @@ const Settings = () => {
             setMessage({ type: '', text: '' });
         }
     };
+
+
+
+
 
     const handleSaveSettings = async () => {
         if (!editedUsername.trim() || !editedEmail.trim()) {
@@ -72,6 +84,9 @@ const Settings = () => {
         }
     };
 
+    
+
+
     const handleDeleteAccount = async () => {
         setIsDeleting(true);
         try {
@@ -91,6 +106,8 @@ const Settings = () => {
             setIsDeleting(false);
         }
     };
+
+
 
   return (
     <>
@@ -145,6 +162,10 @@ const Settings = () => {
             </div>
         </div>
 
+
+
+
+
         <div className="card bg-white p-4 flex flex-col justify-start items-start gap-7 mt-10 rounded-xl w-full">
             <div className='flex flex-row gap-4 items-center justify-start'>
                 <span><img className='invert-[0.5] sepia-[1] hue-rotate-[190deg] saturate-[500%]' src={ReadHubImages.circlesIcon} alt="" /></span>
@@ -160,14 +181,18 @@ const Settings = () => {
                     <input 
                         type="range" 
                         min="0" 
-                        max="60" 
+                        max="30" 
                         value={readingGoal}
-                        onChange={(e) => setReadingGoal(parseInt(e.target.value))}
+                        onChange={(e) => handleReadingGoalChange(parseInt(e.target.value))}
                         className='w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500'
                     />
                 </div>
             </div>
         </div>
+
+
+
+
 
         <div className="card bg-white px-8 py-6 flex flex-col justify-start items-start gap-7 mt-10 rounded-xl">
             <div className='flex flex-row gap-2.5 justify-start items-center'>
@@ -196,6 +221,10 @@ const Settings = () => {
                 <div><img src={ReadHubImages.toggleOnIcon} alt="" /></div>
             </div>
         </div>
+
+
+
+
 
         <div className="cards mt-10 flex flex-col gap-0.5 justify-center items-center">
                     <div className="card bg-white flex rounded-t-xl flex-row justify-between w-full items-center p-5">
@@ -228,10 +257,18 @@ const Settings = () => {
                     </div>
          </div>
 
+
+
+
+
+
          <div className="card mt-10 justify-center items-center border border-gray-300 rounded-lg p-3 flex flex-row gap-3 cursor-pointer hover:bg-red-50" onClick={() => setShowDeleteModal(true)}>
              <span><img src={ReadHubImages.deleteIcon} alt="" /></span>
              <span className='text-red-600'>Delete Account</span>
         </div>
+
+
+
 
         {message.text && (
             <div className={`mt-5 p-4 rounded-lg text-center font-medium ${
@@ -270,6 +307,9 @@ const Settings = () => {
             </div>
         )}
 
+
+
+
         {isEditing ? (
             <div className="w-full flex gap-3 mt-7 mb-30">
                 <button 
@@ -292,6 +332,8 @@ const Settings = () => {
                 <span className='font-normal text-white'>Settings Saved</span>
             </div>
         )}
+
+        
     </div>
     </>
   )

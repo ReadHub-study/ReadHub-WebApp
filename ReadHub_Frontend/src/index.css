@@ -537,3 +537,28 @@ body {
     font-size: 11px;
   }
 }
+
+/* ===== Highlight Styles ===== */
+mark {
+  background-color: #ffff00;
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 2px;
+  margin: 0 -2px;
+  transition: background-color 0.2s ease;
+}
+
+mark:hover {
+  background-color: #ffeb3b;
+}
+
+/* Highlight in dark mode */
+html.dark mark {
+  background-color: #ffdd2d;
+  color: #000;
+}
+
+html.dark mark:hover {
+  background-color: #ffff00;
+}
+

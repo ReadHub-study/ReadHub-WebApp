@@ -134,6 +134,18 @@ export function FileProvider({ children }) {
       );
     } catch (error) {}
   }, []);
+  const [highlights, setHighlights] = useState(() => {
+    const saved = localStorage.getItem("appHighlights");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("appHighlights", JSON.stringify(highlights));
+    } catch (error) {
+      console.error("Failed to save highlights to localStorage:", error);
+    }
+  }, [highlights]);
 
   const addFile = (file) => {
     setFiles((prev) => [...prev, file]);
@@ -143,9 +155,49 @@ export function FileProvider({ children }) {
     setSelectedFile(file);
   };
 
-  const getProgress = (currentPage, totalpages) => {
-    if (!totalpages || !currentPage) return 0;
-    return Math.round((currentPage / totalpages) * 100);
+  const deleteFile = (fileId) => {
+    setFiles((prev) => prev.filter((f) => f.id !== fileId));
+    if (selectedFile2?.id === fileId) {
+      setSelectedFile(null);
+    }
+  };
+
+  const addHighlight = useCallback((fileId, highlight) => {
+    setHighlights((prev) => {
+      const fileHighlights = prev[fileId] || [];
+      // Check if this exact highlight already exists (to avoid duplicates)
+      const exists = fileHighlights.some(
+        (h) => h.text === highlight.text && h.page === highlight.page,
+      );
+
+      if (exists) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [fileId]: [...fileHighlights, { ...highlight, id: Date.now() }],
+      };
+    });
+  }, []);
+
+  const getHighlights = useCallback(
+    (fileId) => {
+      return highlights[fileId] || [];
+    },
+    [highlights],
+  );
+
+  const removeHighlight = useCallback((fileId, highlightId) => {
+    setHighlights((prev) => ({
+      ...prev,
+      [fileId]: (prev[fileId] || []).filter((h) => h.id !== highlightId),
+    }));
+  }, []);
+
+  const getProgress = (file) => {
+    if (!file.numPages || !file.currentPage) return 0;
+    return Math.round((file.currentPage / file.numPages) * 100);
   };
 
   return (
@@ -157,6 +209,7 @@ export function FileProvider({ children }) {
         selectFile,
         updateCurrentPage,
         getProgress,
+
         setSelectedFile,
 
         loading,
@@ -170,6 +223,10 @@ export function FileProvider({ children }) {
         fetchBooks,
         deleteBook,
         updateProgress,
+        addHighlight,
+        getHighlights,
+        removeHighlight,
+        highlights,
       }}
     >
       {children}

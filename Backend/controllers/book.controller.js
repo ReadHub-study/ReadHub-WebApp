@@ -10,7 +10,6 @@ export const generatePdfSignature = async (req, res) => {
     const paramsToSign = {
       timestamp,
       folder: 'documents',
-      resource_type: 'raw',
       allowed_formats: 'pdf,doc,docx,txt',
     }
 
@@ -56,7 +55,7 @@ export const uploadBook = async (req, res) => {
       coverImageUrl,
       fileUrl,
       pages,
-      uploadedBy: req.user._id,
+      uploadedBy: req.user.id,
     })
     await newBook.save()
     res

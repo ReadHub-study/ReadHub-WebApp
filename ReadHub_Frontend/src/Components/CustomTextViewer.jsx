@@ -2,11 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSwipeable } from "react-swipeable";
 import { extractTextWithLayout } from "../Utils/pdfUtils";
 import { useFiles } from "../Context/FileContext";
-import { useParams } from "react-router-dom";
 
-const CustomTextViewer = ({ fileData, file, theme, scale }) => {
+import { useParams } from "react-router-dom";
+import { renderTextWithHighlights } from "./HighlightRenderer";
+
+const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState(null);
   const [minChars] = useState(200);
 
@@ -87,6 +90,12 @@ const CustomTextViewer = ({ fileData, file, theme, scale }) => {
   };
 
   /* ---------------- Swipe ---------------- */
+  const handleTextSelectionWithFallback = (event) => {
+    // Handle both mouse and touch selection
+    if (onTextSelect) {
+      onTextSelect(event);
+    }
+  };
 
   const swipeHandlers = useSwipeable({
     onSwipedLeft: (eventData) => {
@@ -105,6 +114,28 @@ const CustomTextViewer = ({ fileData, file, theme, scale }) => {
   });
 
   /* ---------------- UI States ---------------- */
+  // Track highlights to ensure re-render when they change
+  const { highlights: allHighlights } = useFiles();
+  const [highlights, setHighlights] = useState([]);
+
+  useEffect(() => {
+    if (file?.id && allHighlights) {
+      const fileHighlights = allHighlights[file.id] || [];
+      setHighlights(fileHighlights);
+      console.log(
+        "CustomTextViewer: Highlights updated for file",
+        file.id,
+        "- Page",
+        currentPage + 1,
+        "has",
+        fileHighlights.filter((h) => h.page === currentPage + 1).length,
+        "highlights",
+      );
+    }
+  }, [file?.id, allHighlights]);
+
+  // Get highlights for current file
+  const currentHighlights = highlights;
 
   if (loading) {
     return (

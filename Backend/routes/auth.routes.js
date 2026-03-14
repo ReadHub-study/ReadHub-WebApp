@@ -78,7 +78,7 @@ router.post('/login', login)
 
 /**
  * @swagger
- * /api/auth/auth/google:
+ * /api/auth/google:
  *   post:
  *     summary: Authenticate or register using Google
  *     tags: [Auth]
@@ -100,7 +100,7 @@ router.post('/login', login)
  *       400:
  *         description: Invalid token or email not verified
  */
-router.post('/auth/google', googleAuth)
+router.post('/google', googleAuth)
 
 /**
  * @swagger
