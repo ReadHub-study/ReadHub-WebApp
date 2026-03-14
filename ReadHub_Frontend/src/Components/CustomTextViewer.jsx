@@ -102,6 +102,13 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
     return paragraphs;
   };
 
+  const handleTextSelectionWithFallback = (event) => {
+    // Handle both mouse and touch selection
+    if (onTextSelect) {
+      onTextSelect(event);
+    }
+  };
+
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => goToNextPage(),
     onSwipedRight: () => goToPreviousPage(),
@@ -121,7 +128,7 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
       {
         <div className="max-w-4xl mx-auto">
           {/* Page Content */}
-          <div className="px-4" onMouseUpCapture={onTextSelect}>
+          <div className="px-4" onMouseUpCapture={handleTextSelectionWithFallback} onTouchEnd={handleTextSelectionWithFallback}>
             <div className="max-w-none">
               <div {...swipeHandlers}>
                 {formatIntoParagraphs(pages[currentPage].textItems).map(

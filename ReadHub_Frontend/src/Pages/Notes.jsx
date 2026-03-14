@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosConfig from "../Util/axiosConfig";
+import { apiEndpoints } from "../Util/apiEndpoints";
 
 const Notes = () => {
   const [notes, setNotes] = useState([]);
