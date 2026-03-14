@@ -11,7 +11,7 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [minChars, setMinChars] = useState(200);
 
-  const { updateCurrentPage } = useFiles();
+  const { updateCurrentPage, getHighlights } = useFiles();
 
   const isInitialLoad = useRef(true);
   const hasLoadedSavedPage = useRef(false);
