@@ -29,8 +29,7 @@ const Notes = () => {
   };
 
   // Get local highlights from FileContext
-  // NOTE: Local highlights are only for visual display while reading
-  // They should NOT be displayed in Notes page - only saved notes appear here
+  // Local highlights that were saved as notes should appear here
   const localHighlights = files.flatMap((file) => {
     const fileHighlights = getHighlights(file.id) || [];
     return fileHighlights
@@ -42,36 +41,46 @@ const Notes = () => {
       }));
   });
 
-  // Group API notes by book
-  const groupedNotes = notes.reduce((acc, note) => {
-    const bookId = note.book?._id || "unknown";
-    const bookTitle = note.book?.title || "Unknown Book";
-    if (!acc[bookId]) {
-      acc[bookId] = {
+  // Group combined notes by book: both local and API
+  const groupedNotes = {};
+  
+  // Add local saved highlights to grouped notes
+  localHighlights.forEach((h) => {
+    const bookId = h.bookId;
+    const bookTitle = h.bookTitle;
+    if (!groupedNotes[bookId]) {
+      groupedNotes[bookId] = {
         title: bookTitle,
         notes: [],
       };
     }
-    acc[bookId].notes.push(note);
-    return acc;
-  }, {});
-
-  // Combine only saved notes (local highlights with saved flag + API notes)
-  // Do NOT display unsaved local highlights
-  const allNotes = [
-    ...localHighlights.map((h) => ({
+    groupedNotes[bookId].notes.push({
       _id: h.id,
       content: h.text,
       page: h.page,
-      book: { _id: h.bookId, title: h.bookTitle },
+      isLocal: true,
+    });
+  });
+  
+  // Add API notes to grouped notes
+  notes.forEach((note) => {
+    const bookId = note.book?._id || "unknown";
+    const bookTitle = note.book?.title || "Unknown Book";
+    if (!groupedNotes[bookId]) {
+      groupedNotes[bookId] = {
+        title: bookTitle,
+        notes: [],
+      };
+    }
+    groupedNotes[bookId].notes.push({
+      ...note,
       isLocal: false,
-    })),
-    ...notes.map((n) => ({ ...n, isLocal: false })),
-  ];
+    });
+  });
 
-  // Total highlights = API notes only (local unsaved highlights are for visual display only)
-  const totalHighlights = allNotes.length;
-  // Total books from API notes only
+  // Total highlights = local saved + API notes
+  const totalHighlights = localHighlights.length + notes.length;
+  // Total books = unique books that have notes
   const totalBooks = Object.keys(groupedNotes).length;
   return (
     <div>
@@ -133,14 +142,14 @@ const Notes = () => {
           </div>
         </div>
 
-        {allNotes.length > 0 ? (
+        {Object.keys(groupedNotes).length > 0 ? (
           <div>
             <div>
               {Object.keys(groupedNotes).map((bookId) => {
-                const apiBooksNotes = groupedNotes[bookId]?.notes || [];
+                const bookNotes = groupedNotes[bookId]?.notes || [];
                 const bookTitle = groupedNotes[bookId]?.title || "Unknown Book";
 
-                if (apiBooksNotes.length === 0) return null;
+                if (bookNotes.length === 0) return null;
 
                 return (
                   <div key={bookId}>
@@ -149,7 +158,7 @@ const Notes = () => {
                       <p className="ml-1">{bookTitle}</p>
                     </span>
 
-                    {apiBooksNotes.map((note, index) => (
+                    {bookNotes.map((note, index) => (
                       <div key={note._id || index}>
                         <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
                           <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">

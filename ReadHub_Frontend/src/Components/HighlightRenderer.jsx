@@ -100,9 +100,29 @@ export const highlightTextInPDF = (containerSelector, highlights = [], pageNumbe
   if (currentPageHighlights.length === 0) return;
 
   try {
-    const textLayer = document.querySelector(containerSelector);
+    // Try multiple possible selectors for PDF text layer
+    let textLayer = document.querySelector(containerSelector);
+    
+    // If the provided selector doesn't work, try common alternatives
     if (!textLayer) {
-      console.warn(`Container with selector "${containerSelector}" not found`);
+      const selectors = [
+        ".textLayer", 
+        ".react-pdf__Page__textLayer",
+        ".pdfViewer .page .textLayer",
+        "[role='presentation'] .textLayer"
+      ];
+      
+      for (const selector of selectors) {
+        textLayer = document.querySelector(selector);
+        if (textLayer) {
+          console.log(`Found text layer with selector: ${selector}`);
+          break;
+        }
+      }
+    }
+    
+    if (!textLayer) {
+      console.warn(`No text layer found. Tried selectors: ${containerSelector}, .textLayer, .react-pdf__Page__textLayer, .pdfViewer .page .textLayer, [role='presentation'] .textLayer`);
       return;
     }
 

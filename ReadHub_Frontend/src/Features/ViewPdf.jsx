@@ -84,12 +84,13 @@ const ViewPdf = () => {
       const timeoutId = setTimeout(() => {
         const pageHighlights = getHighlights(selectedFile2.id);
         // Use the correct selector for react-pdf text layer
+        // Try multiple selectors as the structure may vary
         highlightTextInPDF(".react-pdf__Page__textContent", pageHighlights, pageNumber);
-      }, 150);
+      }, 200);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [viewMode, pageNumber, selectedFile2?.id, getHighlights]);
+  }, [viewMode, pageNumber, selectedFile2?.id]);
 
   // Handle text selection
   const handleTextSelection = () => {
@@ -229,37 +230,38 @@ const ViewPdf = () => {
       return;
     }
 
-    // Use bookId if available, otherwise use id (but bookId should be the MongoDB _id)
-    const bookId = selectedFile2.bookId || selectedFile2.id;
-    
-    // Validate bookId is available
-    if (!bookId) {
-      alert("Error: Book ID not available. Please select a different file.");
-      console.error("Missing bookId for file:", selectedFile2);
-      return;
-    }
-    
     setSaving(true);
     try {
-      const payload = {
-        bookId: bookId,
-        content: selectedText.trim(),
-        pageNumber: pageNumber,
-      };
-
-      console.log("Saving note with:", payload);
-
-      const response = await axiosConfig.post(apiEndpoints.NOTES, payload);
-
-      console.log("Note saved successfully:", response.data);
-
-      // Also add to local highlights with saved flag
-      addHighlight(selectedFile2.id, {
+      // First, add to local highlights with saved flag
+      const localHighlight = {
         text: selectedText.trim(),
         page: pageNumber,
         timestamp: new Date().toISOString(),
         saved: true,
-      });
+      };
+      
+      addHighlight(selectedFile2.id, localHighlight);
+      
+      // If bookId is available (from backend), also save to backend
+      if (selectedFile2.bookId) {
+        const payload = {
+          bookId: selectedFile2.bookId,
+          content: selectedText.trim(),
+          pageNumber: pageNumber,
+        };
+
+        console.log("Saving note to backend with:", payload);
+
+        try {
+          const response = await axiosConfig.post(apiEndpoints.NOTES, payload);
+          console.log("Note saved to backend successfully:", response.data);
+        } catch (backendError) {
+          console.warn("Failed to save to backend, but highlight saved locally:", backendError.response?.data?.message || backendError.message);
+          // Continue - the note is already saved locally
+        }
+      } else {
+        console.log("Note saved locally (no bookId available for backend sync)");
+      }
       
       setShowPopup(false);
       setSelectedText("");
@@ -269,7 +271,7 @@ const ViewPdf = () => {
       window.getSelection().removeAllRanges();
     } catch (error) {
       console.error("Error saving note:", error);
-      alert(`Failed to save note: ${error.response?.data?.message || error.message}`);
+      alert(`Failed to save note: ${error.message}`);
     } finally {
       setSaving(false);
     }
