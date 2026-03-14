@@ -18,7 +18,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Basic validation
     if (!validateEmail(email)) {
       setError("Please enter a valid email address");
@@ -28,7 +28,7 @@ const Login = () => {
       setError("Please enter your password");
       return;
     }
-    
+
     setError("");
     setLoading(true);
 
@@ -49,7 +49,10 @@ const Login = () => {
     } catch (err) {
       setLoading(false);
       if (err.response) {
-        setError(err.response.data.message || "Authentication failed. Please check your credentials.");
+        setError(
+          err.response.data.message ||
+            "Authentication failed. Please check your credentials.",
+        );
       } else if (err.request) {
         setError("Network error. Please try again later.");
       } else {
@@ -72,10 +75,10 @@ const Login = () => {
       }
     } catch (err) {
       setError(
-        err.response?.data?.message || "An error occurred during Google login."
+        err.response?.data?.message || "An error occurred during Google login.",
       );
       toast.error(
-        err.response?.data?.message || "An error occurred during Google login."
+        err.response?.data?.message || "An error occurred during Google login.",
       );
     } finally {
       setLoading(false);
@@ -147,19 +150,19 @@ const Login = () => {
               )}
 
               <button
-            disabled={loading}
-              className={`btn-primary bg-blue-400 rounded-lg text-white w-full py-3 text-lg font-medium flex items-center justify-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed': ''}`}
-              type="submit"
-            >
-              {loading ? (
-                <>
-                <LuLoaderCircle className="animate-spin w-4 h-4"/>
-                Signing In...
-                </>
-              ): (
-                "Sign In"
-              )}
-            </button>
+                disabled={loading}
+                className={`btn-primary bg-blue-400 rounded-lg text-white w-full py-3 text-lg font-medium flex items-center justify-center gap-2 ${loading ? "opacity-60 cursor-not-allowed" : ""}`}
+                type="submit"
+              >
+                {loading ? (
+                  <>
+                    <LuLoaderCircle className="animate-spin w-4 h-4" />
+                    Signing In...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
+              </button>
 
               <div className="separator">
                 <hr className="short-line" />

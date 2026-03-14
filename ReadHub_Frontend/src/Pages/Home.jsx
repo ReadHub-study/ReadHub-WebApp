@@ -9,7 +9,15 @@ import axiosConfig from "../Util/axiosConfig";
 const Home = () => {
   const navigate = useNavigate();
   const [continueRead, setContinueRead] = useState(false);
-  const { files, getProgress, selectFile } = useFiles();
+  const {
+    files,
+    getProgress,
+    selectFile,
+    setSelectedFile,
+    currentPage,
+    fetchBooks,
+    loading,
+  } = useFiles();
   const [user, setUser] = useState(null);
 
   // for fetching the user details so that it displays the username
@@ -18,20 +26,25 @@ const Home = () => {
       try {
         const { data } = await axiosConfig.get(apiEndpoints.USER_PROFILE);
         setUser(data.user);
-      } catch (error) {
-        console.error("Error fetching user profile:", error);
-      }
+      } catch (error) {}
     };
     fetchUserProfile();
   }, []);
 
+  useEffect(() => {
+    fetchBooks();
+  }, [fetchBooks]);
+
   const openPdf = (file) => {
-    selectFile(file);
-    navigate(`/viewpdf/${file.id}`);
+    setSelectedFile(file);
+    navigate(`/viewpdf/${file._id}`);
   };
 
   function filterBooks(books) {
-    return books.filter((b) => b.currentPage > 0 && b.currentPage < b.numPages);
+    return books.filter((b) => {
+      const page = currentPage[b._id] ?? b.lastPageRead ?? 0;
+      return page > 0 && page < b.pages;
+    });
   }
 
   const filtered = filterBooks(files);
@@ -47,7 +60,7 @@ const Home = () => {
             <p className="text-tittle_Small font-medium max-xsm:text-[12px]">
               Welcome back
             </p>
-            <p className="text-tittle_Large font-medium max-xsm:text-[17px] leading-5 max-xsm:max-w-20 sm:max-w-40 truncate">
+            <p className="text-tittle_Large font-medium max-xsm:text-[17px] leading-7 max-xsm:max-w-20 max-sm:max-w-32 truncate">
               {user ? user.username : "Reader"}
             </p>
           </span>
@@ -153,41 +166,46 @@ const Home = () => {
         </div>
       </div>
 
-      {filtered.length > 0 ? (
-        <div className="px-4">
-          <div className="font-medium mb-5">Continue Reading</div>
-          {filtered.map((file) => (
-            <ContCard
-              key={file.id}
-              fileName={file.name}
-              page={file.currentPage || 0}
-              totalPage={
-                file.type === "pdf"
-                  ? file.numPages || 0
-                  : file.metadata?.totalPages
-              }
-              progress={getProgress(file)}
-              onOpen={() => {
-                file.type === "pdf" ? openPdf(file) : openEpub(file);
-              }}
-              progPercent={getProgress(file) + "%"}
-              continueRead={
-                file.currentPage < 1 ? "Start Reading" : "Continue Reading"
-              }
-              coverImage={file.coverImage}
-              file={file}
-            />
-          ))}
-        </div>
+      {!loading ? (
+        filtered.length > 0 ? (
+          <div className="px-4">
+            <div className="font-medium mb-5">Continue Reading</div>
+            {filtered.map((file) => {
+              const page = currentPage[file._id] ?? file.lastPageRead ?? 0;
+              return (
+                <ContCard
+                  key={file._id}
+                  fileName={file.title}
+                  page={page}
+                  totalPage={file.pages}
+                  progress={getProgress(page, file.pages)}
+                  onOpen={() => {
+                    file.fileUrl?.endsWith(".pdf")
+                      ? openPdf(file)
+                      : openEpub(file);
+                  }}
+                  progPercent={getProgress(page, file.pages) + "%"}
+                  continueRead={page < 1 ? "Start Reading" : "Continue Reading"}
+                  coverImage={file.coverImageUrl}
+                  file={file}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex px-4 pt-5 justify-center flex-col text-center">
+            <p>Nothing here for now...try reading some books</p>
+            <p className="mt-2">
+              Go to{" "}
+              <a href="/library" className="underline text-primary">
+                Library
+              </a>
+            </p>
+          </div>
+        )
       ) : (
-        <div className="flex px-4 pt-5 justify-center flex-col text-center">
-          <p>Nothing here for now...try reading some books</p>
-          <p className="mt-2">
-            Go to{" "}
-            <a href="/library" className="underline text-primary">
-              Library
-            </a>
-          </p>
+        <div className="w-full flex justify-center items-center">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       )}
     </div>

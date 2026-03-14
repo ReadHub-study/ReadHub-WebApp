@@ -18,18 +18,31 @@ const base64ToArrayBuffer = (base64) => {
 export const extractTextWithLayout = async (fileOrBase64) => {
   try {
     let arrayBuffer;
-    // checkn if its a file object or a base64 string
-    if (typeof fileOrBase64 === "string") {
-      arrayBuffer = base64ToArrayBuffer(fileOrBase64);
-    } else if (fileOrBase64 instanceof File) {
-      arrayBuffer = await fileOrBase64.arrayBuffer();
-    } else {
-      throw new Error(
-        "Invalid input: expected a File object or a base64 string",
-      );
+
+    // CASE 1: URL (Cloudinary)
+    if (typeof fileOrBase64 === "string" && fileOrBase64.startsWith("http")) {
+      const response = await fetch(fileOrBase64);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch PDF");
+      }
+
+      arrayBuffer = await response.arrayBuffer();
     }
 
-    const pdf = await pdfjs.getDocument(arrayBuffer).promise;
+    // CASE 2: Base64 string
+    else if (typeof fileOrBase64 === "string") {
+      arrayBuffer = base64ToArrayBuffer(fileOrBase64);
+    }
+
+    // CASE 3: File object
+    else if (fileOrBase64 instanceof File) {
+      arrayBuffer = await fileOrBase64.arrayBuffer();
+    } else {
+      throw new Error("Invalid input: expected URL, base64, or File");
+    }
+
+    const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
 
     const allpages = [];
 
@@ -37,15 +50,16 @@ export const extractTextWithLayout = async (fileOrBase64) => {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
 
-      // Get text items with position
       const textItems = textContent.items.map((item) => ({
         text: item.str,
       }));
+
       allpages.push({
         pageNumber: pageNum,
         textItems: textItems,
       });
     }
+
     return allpages;
   } catch (error) {
     console.error("Error extracting text with layout:", error);

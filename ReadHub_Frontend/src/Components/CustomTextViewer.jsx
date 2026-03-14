@@ -1,80 +1,64 @@
-import React, { useState, useEffect, use, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSwipeable } from "react-swipeable";
 import { extractTextWithLayout } from "../Utils/pdfUtils";
 import { useFiles } from "../Context/FileContext";
+import { useParams } from "react-router-dom";
 
 const CustomTextViewer = ({ fileData, file, theme, scale }) => {
-  const [pages, setpages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [pages, setPages] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [minChars, setMinChars] = useState(200);
+  const [minChars] = useState(200);
 
-  const { updateCurrentPage } = useFiles();
+  const { fileId } = useParams();
 
-  const isInitialLoad = useRef(true);
-  const hasLoadedSavedPage = useRef(false);
-  const lastSavedPage = useRef(null);
+  const { currentPage, updateCurrentPage } = useFiles();
+  const pageNumber = currentPage[fileId] ?? file?.lastPageRead ?? 1;
+
+  /* ---------------- Load PDF Text ---------------- */
 
   useEffect(() => {
-    if (fileData) {
-      extractText();
-    }
+    if (!fileData) return;
+
+    const loadText = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const extractedPages = await extractTextWithLayout(fileData);
+
+        if (!Array.isArray(extractedPages) || extractedPages.length === 0) {
+          throw new Error("No text could be extracted from this PDF.");
+        }
+
+        setPages(extractedPages);
+      } catch (err) {
+        setError(err.message || "Failed to extract text from PDF.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadText();
   }, [fileData]);
 
-  useEffect(() => {
-    if (file?.currentPage && !hasLoadedSavedPage.current) {
-      setCurrentPage(file.currentPage - 1);
-      hasLoadedSavedPage.current = true;
-      isInitialLoad.current = false;
-      console.log("Text View - Loaded saved page:", file.currentPage);
-    }
-  }, [file?.id, file?.currentPage]);
-
-  useEffect(() => {
-    if (isInitialLoad.current || !hasLoadedSavedPage.current) {
-      isInitialLoad.current = false;
-      return;
-    }
-
-    if (
-      file?.id &&
-      currentPage !== undefined &&
-      currentPage !== lastSavedPage.current
-    ) {
-      updateCurrentPage(file.id, currentPage + 1);
-      const timeoutId = setTimeout(() => {
-        lastSavedPage.current = currentPage;
-        console.log("Text View - Saving page :", currentPage + 1);
-      }, 500);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [currentPage, file?.id, updateCurrentPage]);
+  /* ---------------- Navigation ---------------- */
 
   const goToNextPage = () => {
-    setCurrentPage((p) => Math.min(pages.length - 1, p + 1));
+    const newPage = Math.min(pages.length, (currentPage[fileId] || 1) + 1);
+    updateCurrentPage(fileId, newPage);
   };
+
   const goToPreviousPage = () => {
-    setCurrentPage((p) => Math.max(0, p - 1));
+    const newPage = Math.max(1, (currentPage[fileId] || 1) - 1);
+    updateCurrentPage(fileId, newPage);
   };
 
-  const extractText = async () => {
-    setLoading(true);
-    setError(null);
+  /* ---------------- Paragraph Formatting ---------------- */
 
-    try {
-      const extractedPages = await extractTextWithLayout(fileData);
-      setpages(extractedPages);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error extracting text:", err);
-      setError("Failed to extract text from PDF.");
-      setLoading(false);
-    }
-  };
+  const formatIntoParagraphs = (textItems = []) => {
+    if (!Array.isArray(textItems) || textItems.length === 0) return [];
 
-  const formatIntoParagraphs = (textItems) => {
     const allText = textItems.map((item) => item.text).join(" ");
 
     const paragraphs = [];
@@ -96,51 +80,89 @@ const CustomTextViewer = ({ fileData, file, theme, scale }) => {
         charCount = 0;
       }
     }
-    if (currentParagraph.trim()) {
-      paragraphs.push(currentParagraph.trim());
-    }
+
+    if (currentParagraph.trim()) paragraphs.push(currentParagraph.trim());
+
     return paragraphs;
   };
 
+  /* ---------------- Swipe ---------------- */
+
   const swipeHandlers = useSwipeable({
-    onSwipedLeft: () => goToNextPage(),
-    onSwipedRight: () => goToPreviousPage(),
+    onSwipedLeft: (eventData) => {
+      if (Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)) {
+        goToNextPage();
+      }
+    },
+    onSwipedRight: (eventData) => {
+      if (Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)) {
+        goToPreviousPage();
+      }
+    },
     preventScrollOnSwipe: false,
     trackMouse: true,
+    delta: 70,
   });
+
+  /* ---------------- UI States ---------------- */
+
   if (loading) {
-    return <div>Extracting text from PDF...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        Extracting text from PDF...
+      </div>
+    );
   }
 
   if (error) {
-    return <div>{error}</div>;
+    return (
+      <div className="inline min-h-fit">
+        <p className="text-red-600 inline">Error:</p>
+        {error}
+      </div>
+    );
   }
 
+  if (!pages.length) {
+    return (
+      <div className="flex justify-center items-center min-h-10">
+        No text available.
+      </div>
+    );
+  }
+
+  const page = pages[pageNumber - 1];
+
+  if (!page || !page.textItems) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        Page content unavailable.
+      </div>
+    );
+  }
+
+  const paragraphs = formatIntoParagraphs(page.textItems);
+
+  /* ---------------- Render ---------------- */
+  {
+  }
   return (
     <div className="min-h-screen">
-      {
-        <div className="max-w-4xl mx-auto">
-          {/* Page Content */}
-          <div className="px-4">
-            <div className="max-w-none">
-              <div {...swipeHandlers}>
-                {formatIntoParagraphs(pages[currentPage].textItems).map(
-                  (paragraph, index) => (
-                    <div key={index}>
-                      <p
-                        style={{ fontSize: `${scale}px` }}
-                        className={`font-medium leading-[185%] tracking-[-0.4px] mb-4 ${theme ? "text-[#ECF0F8]" : "text-[#1A1A1A]"}`}
-                      >
-                        {paragraph}
-                      </p>
-                    </div>
-                  ),
-                )}
-              </div>
-            </div>
-          </div>
+      <div className="max-w-4xl mx-auto px-4">
+        <div {...swipeHandlers}>
+          {paragraphs.map((paragraph, index) => (
+            <p
+              key={index}
+              style={{ fontSize: `${scale}px` }}
+              className={`font-medium leading-[185%] tracking-[-0.4px] mb-4 ${
+                theme ? "text-[#ECF0F8]" : "text-[#1A1A1A]"
+              }`}
+            >
+              {paragraph}
+            </p>
+          ))}
         </div>
-      }
+      </div>
     </div>
   );
 };

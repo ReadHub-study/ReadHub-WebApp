@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ContCard from "../Components/ContCard";
 import { Document, Page, pdfjs } from "react-pdf";
 import ViewPdf from "../Features/ViewPdf";
@@ -12,13 +12,33 @@ import { extractPdfCover, extractEpubCover } from "../Utils/coverExtractor";
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const Library = () => {
-  const { selectFile, addFile, files, getProgress } = useFiles();
+  const {
+    selectFile,
+    addFile,
+    files,
+    getProgress,
+    uploadBook,
+    fetchBooks,
+    setSelectedFile,
+    currentPage,
+    updateCurrentPage,
+    deleteBook,
+    loading,
+  } = useFiles();
   const navigate = useNavigate();
 
   const [fileType, setFileType] = useState(null);
   const [fileName, setFileName] = useState("");
 
+  const [activeFilter, setActiveFilter] = useState("All books");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  //Reafresh books on mount
+  useEffect(() => {
+    fetchBooks();
+  }, [fetchBooks]);
 
   const handleFileSElect = async (event) => {
     const selectedFile = event.target.files[0];
@@ -27,19 +47,21 @@ const Library = () => {
 
     setIsUploading(true);
     setFileName(selectedFile.name);
+    setUploadProgress(0);
 
     if (
       selectedFile.type === "application/pdf" ||
       selectedFile.name.endsWith(".pdf")
     ) {
-      handlePdf(selectedFile);
+      await handlePdf(selectedFile);
     } else if (
       selectedFile.type === "application/epub" ||
       selectedFile.name.toLowerCase().endsWith(".epub")
     ) {
-      handleEpub(selectedFile);
+      await handleEpub(selectedFile);
     } else {
       alert("Unsupported file type. Please upload .pdf or .epub files.");
+      setIsUploading(false);
     }
   };
 
@@ -49,32 +71,44 @@ const Library = () => {
     setFileType("pdf");
 
     try {
+      setUploadProgress(10);
+
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
 
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const fileDataUrl = e.target.result;
+        try {
+          const fileDataUrl = e.target.result;
 
-        const coverImage = await extractPdfCover(fileDataUrl);
-        const fileData = {
-          id: Date.now().toString(),
-          name: file.name,
-          type: "pdf",
-          file: e.target.result,
-          numPages: pdf.numPages,
-          currentPage: 0,
-          coverImage: coverImage, //storing Cover
-          uploadedAt: new Date().toISOString(),
-        };
+          const coverImage = await extractPdfCover(fileDataUrl);
 
-        addFile(fileData);
-        setIsUploading(false);
+          setUploadProgress(60);
+
+          const uploadedBook = await uploadBook(file, {
+            title: file.name.replace(".pdf", ""),
+            author: "Unknown",
+            totalPages: pdf.numPages,
+            totalChapters: 0,
+            coverImage: coverImage,
+          });
+          setUploadProgress(100);
+
+          await fetchBooks();
+
+          setTimeout(() => {
+            setIsUploading(false);
+            setUploadProgress(0);
+          }, 500);
+        } catch (error) {
+          alert("Failed to upload pdf file");
+          setIsUploading(false);
+        }
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error("Error reading file:", error);
       alert("Failed to read pdf file");
+      setIsUploading(false);
     }
   };
 
@@ -121,9 +155,7 @@ const Library = () => {
           try {
             const locations = await book.locations.generate(1024);
             totalPages = locations.length || 0;
-          } catch (err) {
-            console.warn("Could not generate locations: ", err);
-          }
+          } catch (err) {}
 
           book.destroy();
 
@@ -145,12 +177,11 @@ const Library = () => {
               totalPages: totalPages,
             },
           };
-          console.log(fileData);
+
           addFile(fileData);
+          await fetchBooks();
           setIsUploading(false);
         } catch (metadataError) {
-          console.error("Error extracting Epub metadata: ", metadataError);
-
           // Fallback: save without metadata
           const fileData = {
             id: Date.now().toString(),
@@ -172,14 +203,13 @@ const Library = () => {
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error("Error reading file: ", error);
       alert("Failed to read epub file");
     }
   };
 
   const openPdf = (file) => {
-    selectFile(file);
-    navigate(`/viewpdf/${file.id}`);
+    setSelectedFile(file);
+    navigate(`/viewpdf/${file._id}`);
   };
 
   const openEpub = (file) => {
@@ -190,25 +220,58 @@ const Library = () => {
   const filters = ["All books", "Reading", "Completed"];
 
   function filterBooks(books, filter) {
-    if (filter === "reading")
-      return books.filter(
-        (b) => b.currentPage > 0 && b.currentPage < b.numPages,
+    let filtered = books;
+
+    // Filter by status
+    if (filter === "reading") {
+      filtered = books.filter((b) => {
+        const page = currentPage[b._id] ?? b.lastPageRead ?? 0;
+        return page > 0 && page < b.pages;
+      });
+    } else if (filter === "completed") {
+      filtered = books.filter((b) => {
+        const page = currentPage[b._id] ?? b.lastPageRead ?? 0;
+        return page >= b.pages;
+      });
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(
+        (book) =>
+          book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          book.author?.toLowerCase().includes(searchQuery.toLowerCase()),
       );
-    if (filter === "completed")
-      return books.filter((b) => b.currentPage === b.numPages);
-    return books;
+    }
+
+    return filtered;
   }
 
-  const [activeFilter, setActiveFilter] = useState("All books");
   const filtered = filterBooks(files, activeFilter.toLowerCase());
+
+  const handleDelete = async (bookId) => {
+    const confirm = window.confirm("Delete this book ?");
+    if (!confirm) return;
+    await deleteBook(bookId);
+  };
 
   return (
     <div className="px-[16px] pt-[40px] overflow-hidden pb-15">
       {isUploading && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6">
+          <div className="bg-white rounded-lg p-6 flex flex-col justify-center items-center">
             <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-700 text-[16px]">Processing book...</p>
+            <p className="text-gray-700 text-[16px]">Uploading book...</p>
+            {/* Progress Bar */}
+            <div className="w-25 bg-gray-200 rounded-full h-2 mt-2">
+              <div
+                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+            <p className="text-sm text-gray-500 text-center mt-1">
+              {uploadProgress}%
+            </p>
           </div>
         </div>
       )}
@@ -272,43 +335,51 @@ const Library = () => {
           <div>
             <div className="text-body_Small flex gap-4 w-full mb-8 overflow-scroll">
               <div className="flex justify-between w-200 gap-4">
-                {filters.map((f) => (
+                {filters.map((f, index) => (
                   <div
-                    key={f}
+                    key={index}
                     onClick={() => {
                       setActiveFilter(f);
                     }}
                     className={`bg-white w-[91px] h-[38px] rounded-[33px] flex justify-center items-center ${activeFilter !== f ? "text-[#4B6481]" : "text-black]"}`}
                   >
                     {`${f}(${filterBooks(files, f.toLocaleLowerCase()).length})`}
-
-                    {console.log(filterBooks(files, f.toLocaleLowerCase()))}
                   </div>
                 ))}
               </div>
             </div>
-            {filtered.map((file) => (
-              <ContCard
-                key={file.id}
-                fileName={file.name}
-                page={file.currentPage || 0}
-                totalPage={
-                  file.type === "pdf"
-                    ? file.numPages || 0
-                    : file.metadata?.totalPages
-                }
-                progress={getProgress(file)}
-                onOpen={() => {
-                  file.type === "pdf" ? openPdf(file) : openEpub(file);
-                }}
-                progPercent={getProgress(file) + "%"}
-                continueRead={
-                  file.currentPage < 1 ? "Start Reading" : "Continue Reading"
-                }
-                file={file}
-                coverImage={file.coverImage}
-              />
-            ))}
+            {!loading ? (
+              filtered?.map((book) => {
+                const page = currentPage[book._id] ?? book.lastPageRead ?? 0;
+
+                return (
+                  <ContCard
+                    key={book._id}
+                    fileName={book.title}
+                    page={page}
+                    totalPage={book.pages}
+                    progress={getProgress(page, book.pages)}
+                    onOpen={() => {
+                      book.fileUrl.endsWith(".pdf")
+                        ? openPdf(book)
+                        : openEpub(book);
+                    }}
+                    progPercent={getProgress(page, book.pages) + "%"}
+                    continueRead={
+                      page < 1 ? "Start Reading" : "Continue Reading"
+                    }
+                    file={book}
+                    coverImage={book.coverImageUrl}
+                    onDelete={() => handleDelete(book._id)}
+                    showDelete={true}
+                  />
+                );
+              })
+            ) : (
+              <div className="w-full h-50 flex justify-center items-center">
+                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
           </div>
         ) : (
           <div className="w-full h-100 flex justify-center items-center">
@@ -319,5 +390,4 @@ const Library = () => {
     </div>
   );
 };
-
 export default Library;

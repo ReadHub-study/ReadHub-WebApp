@@ -12,10 +12,17 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 const ViewPdf = () => {
   const { fileId } = useParams();
 
-  const { selectedFile2, updateCurrentPage, selectFile, files } = useFiles();
+  const {
+    selectedFile2,
+    updateCurrentPage,
+    currentPage,
+    loading,
+    selectFile,
+    files,
+    fetchBooks,
+  } = useFiles();
 
   const [numPages, setNumPages] = useState(null);
-  const [pageNumber, setPageNumber] = useState(1);
 
   const [viewMode, setViewMode] = useState("pdf"); // "pdf" or "text"
 
@@ -24,66 +31,59 @@ const ViewPdf = () => {
   const [toggleSettings, setToggleSettings] = useState(true);
 
   const [scale, setScale] = useState(0.5);
-  const [scaleFont, setScaleFont] = useState(14);
+  const [scaleFont, setScaleFont] = useState(16);
 
+  // Track if we've initiated a fetch
+  const [hasFetched, setHasFetched] = useState(false);
+
+  // Fetch on mount if files is empty
   useEffect(() => {
+    if (files.length === 0) {
+      fetchBooks().then(() => setHasFetched(true));
+    } else {
+      setHasFetched(true);
+    }
+  }, []);
+
+  // Only redirect after fetch is confirmed done
+  useEffect(() => {
+    if (!hasFetched || loading) return; // wait for fetch to finish
+
     if (fileId) {
-      const file = files.find((f) => f.id === fileId);
+      const file = files.find((f) => f._id === fileId);
       if (file) {
         selectFile(file);
       } else {
-        navigate("/library");
+        navigate("/library"); // now only fires if book genuinely doesn't exist
       }
     }
-  }, [fileId, files, selectFile, navigate]);
+  }, [fileId, files, loading, hasFetched, selectFile, navigate]);
 
-  useEffect(() => {
-    if (selectedFile2?.currentPage) {
-      console.log("pdf View - Loading saved Page:", selectedFile2.currentPage);
-      setPageNumber(selectedFile2.currentPage);
-    }
-  }, [selectedFile2?.id, selectedFile2?.currentPage]);
-
-  useEffect(() => {
-    if (selectedFile2?.id && pageNumber) {
-      const timeoutId = setTimeout(() => {
-        updateCurrentPage(selectedFile2.id, pageNumber, "pdf-view");
-        console.log("pdf view - Saving page : ", pageNumber);
-      }, 500);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [pageNumber, selectedFile2?.id, viewMode]);
-
-  useEffect(() => {
-    if (
-      viewMode === "pdf" &&
-      selectedFile2?.currentPage &&
-      selectedFile2.currentPage !== pageNumber
-    ) {
-      console.log(
-        "pdf view - syncing from context: ",
-        selectedFile2.currentPage,
-      );
-    }
-  }, [viewMode, selectedFile2?.currentPage]);
+  const savedPage = selectedFile2?.lastPageRead || 1;
+  const pageNumber = currentPage[fileId] || savedPage;
 
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
+    if (!currentPage[fileId]) {
+      updateCurrentPage(fileId, savedPage);
+    }
   };
 
   const goToPrevPage = () => {
-    setPageNumber((prev) => Math.max(1, prev - 1));
+    const newPage = Math.max(1, (currentPage[fileId] || 1) - 1);
+    updateCurrentPage(fileId, newPage);
   };
 
   const goToNextPage = () => {
-    setPageNumber((prev) => Math.min(numPages, prev + 1));
+    const newPage = Math.min(numPages, (currentPage[fileId] || 1) + 1);
+    updateCurrentPage(fileId, newPage);
   };
 
   const jumpToPage = (page) => {
-    setPageNumber(page);
+    updateCurrentPage(fileId, page);
+    setToggleSettings(!toggleSettings);
   };
-
+  // Swipe-------------------------------------//
   const swipeHandlers = useSwipeable({
     onSwipedLeft: (eventData) => {
       if (Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)) {
@@ -97,9 +97,10 @@ const ViewPdf = () => {
     },
     preventScrollOnSwipe: false,
     trackMouse: true,
-    delta: 190,
+    delta: 150,
   });
 
+  /*------Dark toggle, Zoom and font Increase----*/
   const [darkToggle, setDarkToggle] = useState(false);
 
   const zoomIn = () => {
@@ -118,12 +119,11 @@ const ViewPdf = () => {
     setScaleFont((prev) => Math.max(prev - 2, 14));
   };
 
-  if (!selectedFile2 && fileId) {
+  useEffect(() => {}, [currentPage]);
+  if ((!selectedFile2 && fileId) || !hasFetched) {
     return (
-      <div className="w-full h-full p-4">
-        <div className="text-center mt-20">
-          <p className="text-xl text-gray-600">Loading...</p>
-        </div>
+      <div className="w-full h-screen flex justify-center items-center bg-white">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -255,7 +255,6 @@ const ViewPdf = () => {
           <div
             onClick={() => {
               setToggleSettings(!toggleSettings);
-              console.log("Fugga");
             }}
           >
             <svg
@@ -278,7 +277,7 @@ const ViewPdf = () => {
       <div className="top-15 relative">
         <div className="px-4 ">
           <h2 className="text-tittle_Medium font-medium text-[14px] leading-[20px] truncate">
-            {selectedFile2.name}
+            {selectedFile2.title}
           </h2>
           <h2 className="font-bold text-[20px] leading-[185%] pb-5">
             Page {pageNumber} of {numPages}
@@ -290,7 +289,7 @@ const ViewPdf = () => {
           {viewMode === "pdf" ? (
             <div className=" flex justify-center overflow-hidden w-dvw">
               <Document
-                file={selectedFile2.file}
+                file={selectedFile2.fileUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
                 loading={<div>Loading PDF...</div>}
                 error={<div>Failed to load PDF.</div>}
@@ -307,7 +306,7 @@ const ViewPdf = () => {
             </div>
           ) : (
             <CustomTextViewer
-              fileData={selectedFile2.file}
+              fileData={selectedFile2.fileUrl}
               file={selectedFile2}
               theme={darkToggle}
               scale={scaleFont}
