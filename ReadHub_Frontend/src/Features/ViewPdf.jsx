@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/Page/TextLayer.css";
 import { useFiles } from "../Context/FileContext";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useSwipeable } from "react-swipeable";
@@ -144,7 +145,7 @@ const ViewPdf = () => {
         // Use the correct selector for react-pdf text layer
         // Try multiple selectors as the structure may vary
         highlightTextInPDF(
-          ".react-pdf__Page__textContent",
+          ".react-pdf__Page__textLayer",
           pageHighlights,
           pageNumber,
         );
@@ -280,9 +281,9 @@ const ViewPdf = () => {
     let offsets = null;
     if (viewMode === "pdf") {
       const pdfContainer =
-        document.querySelector(".react-pdf__Page__textContent") ||
         document.querySelector(".react-pdf__Page__textLayer") ||
-        document.querySelector(".textLayer");
+        document.querySelector(".textLayer") ||
+        document.querySelector(".react-pdf__Page__textContent");
       offsets = getSelectionOffsetsWithin(pdfContainer);
     } else {
       offsets = getSelectionOffsetsWithin(textModeContainerRef.current);
@@ -293,6 +294,7 @@ const ViewPdf = () => {
       page: pageNumber,
       timestamp: new Date().toISOString(),
       saved: false,
+      color: "yellow",
       ...offsets,
     };
 
@@ -328,9 +330,9 @@ const ViewPdf = () => {
       let offsets = null;
       if (viewMode === "pdf") {
         const pdfContainer =
-          document.querySelector(".react-pdf__Page__textContent") ||
           document.querySelector(".react-pdf__Page__textLayer") ||
-          document.querySelector(".textLayer");
+          document.querySelector(".textLayer") ||
+          document.querySelector(".react-pdf__Page__textContent");
         offsets = getSelectionOffsetsWithin(pdfContainer);
       } else {
         offsets = getSelectionOffsetsWithin(textModeContainerRef.current);
@@ -342,6 +344,7 @@ const ViewPdf = () => {
         page: pageNumber,
         timestamp: new Date().toISOString(),
         saved: true,
+        color: "yellow",
         ...offsets,
       };
 

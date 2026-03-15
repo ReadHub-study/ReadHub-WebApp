@@ -187,9 +187,9 @@ const Notes = () => {
 
                     {bookNotes.map((note, index) => (
                       <div key={note._id || index}>
-                        <div className="h-[97px] w-full bg-primary rounded-[10px] relative overflow-hidden border-0 outline-0 mb-8">
-                          <div className="h-[97px] bg-white rounded-[10px] relative left-2 flex flex-col justify-center px-2">
-                            <p className=" text-body_Medium font-medium">
+                        <div className="w-full bg-primary rounded-[10px] p-[2px] mb-6">
+                          <div className="bg-white rounded-[9px] p-3">
+                            <p className="text-body_Medium font-medium break-words">
                               "{note.content}"
                             </p>
                             <p className="text-[#5f5f61] text-body_Small mt-1">

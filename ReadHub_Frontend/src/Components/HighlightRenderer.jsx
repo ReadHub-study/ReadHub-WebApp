@@ -171,13 +171,34 @@ export const highlightTextInPDF = (containerSelector, highlights = [], pageNumbe
       running += len;
     });
 
-    const applySpanStyle = (el) => {
+    const getHighlightColor = (color) => {
+      const c = (color || "yellow").toString().toLowerCase();
+      if (c === "blue") {
+        return {
+          bg: "rgba(59, 130, 246, 0.35)",
+          shadow: "rgba(59, 130, 246, 0.22)",
+        };
+      }
+      if (c === "green") {
+        return {
+          bg: "rgba(34, 197, 94, 0.28)",
+          shadow: "rgba(34, 197, 94, 0.18)",
+        };
+      }
+      return {
+        bg: "rgba(255, 235, 59, 0.55)",
+        shadow: "rgba(255, 235, 59, 0.35)",
+      };
+    };
+
+    const applySpanStyle = (el, color) => {
       if (!el || el.nodeType !== 1) return;
+      const { bg, shadow } = getHighlightColor(color);
       el.setAttribute("data-rh-highlight", "1");
       // Use background/boxShadow only (avoid padding which can shift PDF layout)
-      el.style.backgroundColor = "rgba(255, 235, 59, 0.55)";
+      el.style.backgroundColor = bg;
       el.style.borderRadius = "2px";
-      el.style.boxShadow = "inset 0 -0.6em 0 rgba(255, 235, 59, 0.35)";
+      el.style.boxShadow = `inset 0 -0.6em 0 ${shadow}`;
     };
 
     // Apply offset-based highlights (exact range, 1 highlight = 1 range)
@@ -189,7 +210,7 @@ export const highlightTextInPDF = (containerSelector, highlights = [], pageNumbe
       nodeOffsets.forEach(({ node: textNode, start, end }) => {
         if (start >= h.endOffset || end <= h.startOffset) return;
         const el = textNode.parentElement;
-        applySpanStyle(el);
+        applySpanStyle(el, h.color);
       });
     });
 
@@ -203,7 +224,7 @@ export const highlightTextInPDF = (containerSelector, highlights = [], pageNumbe
         if (applied) break;
         const content = textNode.textContent || "";
         if (!content.includes(h.text)) continue;
-        applySpanStyle(textNode.parentElement);
+        applySpanStyle(textNode.parentElement, h.color);
         applied = true;
       }
     });
