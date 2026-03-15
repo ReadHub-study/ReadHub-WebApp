@@ -49,7 +49,7 @@ export const updateUserProfile = async (req, res) => {
           `res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}`,
         )
       ) {
-        return res.status(400).json({ error: 'Invalid image source' })
+        return res.status(400).json({ message: 'Invalid image source' })
       }
 
       updateUser.profilePicture = profilePicture
@@ -59,28 +59,30 @@ export const updateUserProfile = async (req, res) => {
       userId,
       { $set: updateUser },
       { new: true, runValidators: true },
-    ).select('-password -refreshToken')
+    ).select('-password -refreshToken -googleId')
 
     if (!updatedUser) {
-      return res.status(404).json({ error: 'User not found' })
+      return res.status(404).json({ message: 'User not found' })
     }
 
     res.status(200).json({ updatedUser })
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 }
 
 export const getUserProfile = async (req, res) => {
   try {
     const userId = req.user.id
-    const user = await User.findById(userId).select('-password -refreshToken')
+    const user = await User.findById(userId).select(
+      '-password -refreshToken -googleId',
+    )
     if (!user) {
-      return res.status(404).json({ error: 'User not found' })
+      return res.status(404).json({ message: 'User not found' })
     }
     res.status(200).json({ user })
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 }
 
@@ -89,10 +91,10 @@ export const deleteUserProfile = async (req, res) => {
     const userId = req.user.id
     const deletedUser = await User.findByIdAndDelete(userId)
     if (!deletedUser) {
-      return res.status(404).json({ error: 'User not found' })
+      return res.status(404).json({ message: 'User not found' })
     }
     res.status(200).json({ message: 'User profile deleted successfully' })
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 }
