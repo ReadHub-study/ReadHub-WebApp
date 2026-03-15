@@ -1,5 +1,7 @@
 import cloudinary from '../config/cloudinary.js'
 import Book from '../models/Books.js'
+import ReadingSession from '../models/readingSession.js'
+import UserStats from '../models/userStatistics.js'
 
 export const generatePdfSignature = async (req, res) => {
   try {
@@ -151,5 +153,137 @@ export const deleteBook = async (req, res) => {
     return res
       .status(500)
       .json({ message: 'Error deleting book', error: error.message })
+  }
+}
+
+export const startReading = async (req, res) => {
+  try {
+    const { bookId, startPage } = req.body
+
+    let readingBook = await ReadingSession.findOne({
+      book: bookId,
+      user: req.user.id,
+    })
+
+    if (!readingBook) {
+      readingBook = await ReadingSession.create({
+        user: req.user.id,
+        book: bookId,
+        startTime: new Date(),
+        startPage,
+      })
+    } else {
+      readingBook.startPage = startPage
+      readingBook.startTime = new Date()
+      await readingBook.save()
+    }
+
+    return res.status(201).json({
+      message: 'Session recorded',
+      session: readingBook,
+    })
+  } catch (error) {
+    console.log(error.message)
+    return res.status(500).json({ message: error.message })
+  }
+}
+
+export const endReading = async (req, res) => {
+  try {
+    const { sessionId, endPage } = req.body
+    const userId = req.user.id
+
+    const session = await ReadingSession.findById(sessionId)
+
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' })
+    }
+
+    session.endTime = new Date()
+
+    const duration = (session.endTime - session.startTime) / 1000 / 60
+    session.duration = Math.round(duration)
+    session.endPage = endPage
+    session.pagesRead = endPage - session.startPage
+
+    await session.save()
+
+    // UPDATE USER STATS
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    let stats = await UserStats.findOne({ user: userId })
+
+    if (!stats) {
+      stats = await UserStats.create({ user: userId })
+    }
+
+    stats.totalMinutesRead += session.duration
+
+    const lastDate = stats.lastReadingDate
+      ? new Date(stats.lastReadingDate).setHours(0, 0, 0, 0)
+      : null
+
+    const todayDate = new Date().setHours(0, 0, 0, 0)
+
+    if (lastDate === todayDate) {
+      stats.todayReadingMinutes += session.duration
+    } else {
+      stats.todayReadingMinutes = session.duration
+    }
+
+    stats.lastReadingDate = new Date()
+
+    if (stats.todayReadingMinutes >= stats.dailyReadingGoal) {
+      stats.currentStreak += 1
+
+      if (stats.currentStreak > stats.bestStreak) {
+        stats.bestStreak = stats.currentStreak
+      }
+    }
+
+    await stats.save()
+
+    res.json(session)
+  } catch (error) {
+    console.log(error.message)
+    res.status(500).json({ message: error.message })
+  }
+}
+
+export const getStatistics = async (req, res) => {
+  try {
+    const userId = req.user.id
+
+    const [userStats, completedBooks, currentlyReading] = await Promise.all([
+      UserStats.findOne({ user: userId }).lean(),
+
+      Book.countDocuments({
+        uploadedBy: userId,
+        status: 'completed',
+      }),
+
+      Book.countDocuments({
+        uploadedBy: userId,
+        status: 'reading',
+      }),
+    ])
+
+    res.status(200).json({
+      dailyGoal: userStats?.dailyReadingGoal || 30,
+      todayReadingMinutes: userStats?.todayReadingMinutes || 0,
+      totalHoursRead: Number(
+        ((userStats?.totalMinutesRead || 0) / 60).toFixed(1),
+      ),
+      currentStreak: userStats?.currentStreak || 0,
+      bestStreak: userStats?.bestStreak || 0,
+      completedBooks,
+      currentlyReading,
+    })
+  } catch (error) {
+    res.status(500).json({
+      message: 'Error fetching statistics',
+      error: error.message,
+    })
   }
 }
