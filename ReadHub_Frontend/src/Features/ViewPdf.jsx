@@ -55,6 +55,60 @@ const ViewPdf = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [saving, setSaving] = useState(false);
   const popupRef = useRef(null);
+  const textModeContainerRef = useRef(null);
+
+  const getSelectionOffsetsWithin = (containerEl) => {
+    try {
+      if (!containerEl) return null;
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return null;
+
+      const range = selection.getRangeAt(0);
+      if (
+        range.startContainer?.nodeType !== Node.TEXT_NODE ||
+        range.endContainer?.nodeType !== Node.TEXT_NODE
+      ) {
+        return null;
+      }
+
+      if (
+        !containerEl.contains(range.startContainer) ||
+        !containerEl.contains(range.endContainer)
+      ) {
+        return null;
+      }
+
+      const walker = document.createTreeWalker(
+        containerEl,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false,
+      );
+
+      let node;
+      let running = 0;
+      let start = null;
+      let end = null;
+
+      while ((node = walker.nextNode())) {
+        if (node === range.startContainer) {
+          start = running + range.startOffset;
+        }
+        if (node === range.endContainer) {
+          end = running + range.endOffset;
+          break;
+        }
+        running += node.textContent?.length ?? 0;
+      }
+
+      if (typeof start !== "number" || typeof end !== "number") return null;
+      if (end <= start) return null;
+
+      return { startOffset: start, endOffset: end };
+    } catch {
+      return null;
+    }
+  };
 
   useEffect(() => {
     if (files.length === 0) {
@@ -223,11 +277,23 @@ const ViewPdf = () => {
 
     // Save ONLY to local highlights (FileContext)
     // Do NOT save to backend API
+    let offsets = null;
+    if (viewMode === "pdf") {
+      const pdfContainer =
+        document.querySelector(".react-pdf__Page__textContent") ||
+        document.querySelector(".react-pdf__Page__textLayer") ||
+        document.querySelector(".textLayer");
+      offsets = getSelectionOffsetsWithin(pdfContainer);
+    } else {
+      offsets = getSelectionOffsetsWithin(textModeContainerRef.current);
+    }
+
     const highlightData = {
       text: selectedText.trim(),
       page: pageNumber,
       timestamp: new Date().toISOString(),
       saved: false,
+      ...offsets,
     };
 
     console.log("=== HIGHLIGHTING ===");
@@ -259,12 +325,24 @@ const ViewPdf = () => {
 
     setSaving(true);
     try {
+      let offsets = null;
+      if (viewMode === "pdf") {
+        const pdfContainer =
+          document.querySelector(".react-pdf__Page__textContent") ||
+          document.querySelector(".react-pdf__Page__textLayer") ||
+          document.querySelector(".textLayer");
+        offsets = getSelectionOffsetsWithin(pdfContainer);
+      } else {
+        offsets = getSelectionOffsetsWithin(textModeContainerRef.current);
+      }
+
       // First, add to local highlights with saved flag
       const localHighlight = {
         text: selectedText.trim(),
         page: pageNumber,
         timestamp: new Date().toISOString(),
         saved: true,
+        ...offsets,
       };
 
       addHighlight(activeFileId, localHighlight);
@@ -505,13 +583,15 @@ const ViewPdf = () => {
               </Document>
             </div>
           ) : (
-            <CustomTextViewer
-              fileData={activeFile?.fileUrl}
-              file={activeFile}
-              theme={darkToggle}
-              scale={scaleFont}
-              onTextSelect={handleTextSelection}
-            />
+            <div ref={textModeContainerRef}>
+              <CustomTextViewer
+                fileData={activeFile?.fileUrl}
+                file={activeFile}
+                theme={darkToggle}
+                scale={scaleFont}
+                onTextSelect={handleTextSelection}
+              />
+            </div>
           )}
         </div>
 

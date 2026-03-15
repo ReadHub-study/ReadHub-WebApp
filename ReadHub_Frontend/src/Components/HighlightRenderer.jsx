@@ -136,7 +136,15 @@ export const highlightTextInPDF = (containerSelector, highlights = [], pageNumbe
       parent.removeChild(mark);
     });
 
-    // Find and highlight text nodes
+    const existingStyled = textLayer.querySelectorAll("[data-rh-highlight='1']");
+    existingStyled.forEach((el) => {
+      el.style.backgroundColor = "";
+      el.style.borderRadius = "";
+      el.style.boxShadow = "";
+      el.removeAttribute("data-rh-highlight");
+    });
+
+    // Find text nodes (in DOM order)
     const walker = document.createTreeWalker(
       textLayer,
       NodeFilter.SHOW_TEXT,
@@ -144,33 +152,59 @@ export const highlightTextInPDF = (containerSelector, highlights = [], pageNumbe
       false
     );
 
-    const nodesToReplace = [];
+    const textNodes = [];
     let node;
-    while (node = walker.nextNode()) {
-      nodesToReplace.push(node);
+    while ((node = walker.nextNode())) {
+      textNodes.push(node);
     }
 
-    nodesToReplace.forEach(textNode => {
-      let content = textNode.textContent;
-      let hasHighlight = false;
-
-      currentPageHighlights.forEach(highlight => {
-        if (content.includes(highlight.text)) {
-          hasHighlight = true;
-          // Create a regex to match the text
-          const escapedText = highlight.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const regex = new RegExp(`(${escapedText})`, 'g');
-          content = content.replace(
-            regex,
-            '<mark class="bg-yellow-300 rounded px-0.5">$1</mark>'
-          );
-        }
+    // Map nodes to global offsets
+    const nodeOffsets = [];
+    let running = 0;
+    textNodes.forEach((textNode) => {
+      const len = textNode.textContent?.length ?? 0;
+      nodeOffsets.push({
+        node: textNode,
+        start: running,
+        end: running + len,
       });
+      running += len;
+    });
 
-      if (hasHighlight) {
-        const span = document.createElement('span');
-        span.innerHTML = content;
-        textNode.parentNode.replaceChild(span, textNode);
+    const applySpanStyle = (el) => {
+      if (!el || el.nodeType !== 1) return;
+      el.setAttribute("data-rh-highlight", "1");
+      // Use background/boxShadow only (avoid padding which can shift PDF layout)
+      el.style.backgroundColor = "rgba(255, 235, 59, 0.55)";
+      el.style.borderRadius = "2px";
+      el.style.boxShadow = "inset 0 -0.6em 0 rgba(255, 235, 59, 0.35)";
+    };
+
+    // Apply offset-based highlights (exact range, 1 highlight = 1 range)
+    currentPageHighlights.forEach((h) => {
+      if (typeof h?.startOffset !== "number" || typeof h?.endOffset !== "number") {
+        return;
+      }
+
+      nodeOffsets.forEach(({ node: textNode, start, end }) => {
+        if (start >= h.endOffset || end <= h.startOffset) return;
+        const el = textNode.parentElement;
+        applySpanStyle(el);
+      });
+    });
+
+    // Fallback: apply a single match per highlight (avoid highlighting every occurrence)
+    currentPageHighlights.forEach((h) => {
+      if (!h?.text || typeof h.text !== "string") return;
+      if (typeof h?.startOffset === "number" && typeof h?.endOffset === "number") return;
+
+      let applied = false;
+      for (const { node: textNode } of nodeOffsets) {
+        if (applied) break;
+        const content = textNode.textContent || "";
+        if (!content.includes(h.text)) continue;
+        applySpanStyle(textNode.parentElement);
+        applied = true;
       }
     });
   } catch (error) {
