@@ -189,12 +189,18 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
           {paragraphs.map((paragraph, index) => (
             <p
               key={index}
+              data-rh-paragraph-index={index}
               style={{ fontSize: `${scale}px` }}
               className={`font-medium leading-[185%] tracking-[-0.4px] mb-4 ${
                 theme ? "text-[#ECF0F8]" : "text-[#1A1A1A]"
               }`}
             >
-              {renderTextWithHighlights(paragraph, currentHighlights, pageNumber)}
+              {renderTextWithHighlights(
+                paragraph,
+                currentHighlights,
+                pageNumber,
+                index,
+              )}
             </p>
           ))}
         </div>

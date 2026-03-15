@@ -53,6 +53,7 @@ const ViewPdf = () => {
   // Highlight and popup states
   const [selectedText, setSelectedText] = useState("");
   const [selectedOffsets, setSelectedOffsets] = useState(null);
+  const [selectedTextRange, setSelectedTextRange] = useState(null);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [showPopup, setShowPopup] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -165,13 +166,65 @@ const ViewPdf = () => {
               document.querySelector(".textLayer") ||
               document.querySelector(".react-pdf__Page__textContent");
             offsets = getSelectionOffsetsWithin(pdfTextLayer);
+            setSelectedTextRange(null);
           } else {
             offsets = getSelectionOffsetsWithin(textModeContainerRef.current);
+
+            const startP = range.startContainer?.parentElement?.closest?.(
+              "p[data-rh-paragraph-index]",
+            );
+            const endP = range.endContainer?.parentElement?.closest?.(
+              "p[data-rh-paragraph-index]",
+            );
+
+            if (startP && endP) {
+              const startParagraphIndex = Number(
+                startP.getAttribute("data-rh-paragraph-index"),
+              );
+              const endParagraphIndex = Number(
+                endP.getAttribute("data-rh-paragraph-index"),
+              );
+
+              const startRange = document.createRange();
+              startRange.selectNodeContents(startP);
+              startRange.setEnd(range.startContainer, range.startOffset);
+              const startOffsetInParagraph = startRange.toString().length;
+
+              const endRange = document.createRange();
+              endRange.selectNodeContents(endP);
+              endRange.setEnd(range.endContainer, range.endOffset);
+              const endOffsetInParagraph = endRange.toString().length;
+
+              if (
+                Number.isFinite(startParagraphIndex) &&
+                Number.isFinite(endParagraphIndex) &&
+                Number.isFinite(startOffsetInParagraph) &&
+                Number.isFinite(endOffsetInParagraph)
+              ) {
+                setSelectedTextRange({
+                  startParagraphIndex: Math.min(
+                    startParagraphIndex,
+                    endParagraphIndex,
+                  ),
+                  endParagraphIndex: Math.max(
+                    startParagraphIndex,
+                    endParagraphIndex,
+                  ),
+                  startOffsetInParagraph,
+                  endOffsetInParagraph,
+                });
+              } else {
+                setSelectedTextRange(null);
+              }
+            } else {
+              setSelectedTextRange(null);
+            }
           }
         }
         setSelectedOffsets(offsets);
       } catch {
         setSelectedOffsets(null);
+        setSelectedTextRange(null);
       }
       try {
         const range = selection.getRangeAt(0);
@@ -202,6 +255,7 @@ const ViewPdf = () => {
     } else {
       setShowPopup(false);
       setSelectedOffsets(null);
+      setSelectedTextRange(null);
     }
   };
 
@@ -313,6 +367,9 @@ const ViewPdf = () => {
       saved: false,
       color: "yellow",
       ...(selectedOffsets || offsets || {}),
+      ...(viewMode === "text" && selectedTextRange
+        ? { textRange: selectedTextRange }
+        : {}),
     };
 
     console.log("=== HIGHLIGHTING ===");
@@ -328,6 +385,7 @@ const ViewPdf = () => {
     setShowPopup(false);
     setSelectedText("");
     setSelectedOffsets(null);
+    setSelectedTextRange(null);
     // Clear browser selection
     window.getSelection().removeAllRanges();
   };
@@ -369,6 +427,9 @@ const ViewPdf = () => {
         saved: true,
         color: "yellow",
         ...(selectedOffsets || offsets || {}),
+        ...(viewMode === "text" && selectedTextRange
+          ? { textRange: selectedTextRange }
+          : {}),
       };
 
       addHighlight(activeFileId, localHighlight);
@@ -400,6 +461,7 @@ const ViewPdf = () => {
       setShowPopup(false);
       setSelectedText("");
       setSelectedOffsets(null);
+      setSelectedTextRange(null);
       alert("Note saved successfully!");
 
       // Clear browser selection
@@ -418,6 +480,7 @@ const ViewPdf = () => {
     setShowPopup(false);
     setSelectedText("");
     setSelectedOffsets(null);
+    setSelectedTextRange(null);
     window.getSelection().removeAllRanges();
   };
 

@@ -5,13 +5,18 @@ import React from "react";
  * Handles highlights that may span multiple lines/elements
  * Returns proper JSX that React can render
  */
-export const renderTextWithHighlights = (text, highlights = [], pageNumber) => {
+export const renderTextWithHighlights = (
+  text,
+  highlights = [],
+  pageNumber,
+  paragraphIndex,
+) => {
   if (!highlights || highlights.length === 0) {
     return text;
   }
 
   // Filter highlights for current page
-  const currentPageHighlights = highlights.filter(h => h.page === pageNumber);
+  const currentPageHighlights = highlights.filter((h) => h.page === pageNumber);
   
   if (currentPageHighlights.length === 0) {
     return text;
@@ -24,6 +29,40 @@ export const renderTextWithHighlights = (text, highlights = [], pageNumber) => {
   const highlightMatches = [];
   
   currentPageHighlights.forEach((highlight) => {
+    // Text-mode range highlights (exact block selection)
+    if (
+      typeof paragraphIndex === "number" &&
+      highlight?.textRange &&
+      typeof highlight.textRange.startParagraphIndex === "number" &&
+      typeof highlight.textRange.endParagraphIndex === "number"
+    ) {
+      const startP = highlight.textRange.startParagraphIndex;
+      const endP = highlight.textRange.endParagraphIndex;
+      if (paragraphIndex < startP || paragraphIndex > endP) return;
+
+      let startIndex = 0;
+      let endIndex = text.length;
+
+      if (paragraphIndex === startP) {
+        const s = Number(highlight.textRange.startOffsetInParagraph);
+        if (Number.isFinite(s)) startIndex = Math.max(0, Math.min(text.length, s));
+      }
+      if (paragraphIndex === endP) {
+        const e = Number(highlight.textRange.endOffsetInParagraph);
+        if (Number.isFinite(e)) endIndex = Math.max(0, Math.min(text.length, e));
+      }
+
+      if (endIndex > startIndex) {
+        highlightMatches.push({
+          startIndex,
+          endIndex,
+          text: text.substring(startIndex, endIndex),
+          highlightId: highlight.id,
+        });
+      }
+      return;
+    }
+
     if (!highlight.text) return;
     
     // Find all occurrences of this highlight in the text
