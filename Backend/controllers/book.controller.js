@@ -2,6 +2,7 @@ import cloudinary from '../config/cloudinary.js'
 import Book from '../models/Books.js'
 import ReadingSession from '../models/readingSession.js'
 import UserStats from '../models/userStatistics.js'
+import Notes from './../models/Notes,js'
 
 export const generatePdfSignature = async (req, res) => {
   try {
@@ -148,6 +149,8 @@ export const deleteBook = async (req, res) => {
     if (!book) {
       return res.status(404).json({ message: 'Book not found' })
     }
+    await Notes.deleteMany({ book: bookId, user: req.user.id })
+    await ReadingSession.deleteMany({ book: bookId, user: req.user.id })
     res.json({ message: 'Book deleted successfully' })
   } catch (error) {
     return res
