@@ -52,6 +52,7 @@ const ViewPdf = () => {
 
   // Highlight and popup states
   const [selectedText, setSelectedText] = useState("");
+  const [selectedOffsets, setSelectedOffsets] = useState(null);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [showPopup, setShowPopup] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -66,43 +67,23 @@ const ViewPdf = () => {
 
       const range = selection.getRangeAt(0);
       if (
-        range.startContainer?.nodeType !== Node.TEXT_NODE ||
-        range.endContainer?.nodeType !== Node.TEXT_NODE
-      ) {
-        return null;
-      }
-
-      if (
         !containerEl.contains(range.startContainer) ||
         !containerEl.contains(range.endContainer)
       ) {
         return null;
       }
 
-      const walker = document.createTreeWalker(
-        containerEl,
-        NodeFilter.SHOW_TEXT,
-        null,
-        false,
-      );
+      const startRange = document.createRange();
+      startRange.selectNodeContents(containerEl);
+      startRange.setEnd(range.startContainer, range.startOffset);
+      const start = startRange.toString().length;
 
-      let node;
-      let running = 0;
-      let start = null;
-      let end = null;
+      const endRange = document.createRange();
+      endRange.selectNodeContents(containerEl);
+      endRange.setEnd(range.endContainer, range.endOffset);
+      const end = endRange.toString().length;
 
-      while ((node = walker.nextNode())) {
-        if (node === range.startContainer) {
-          start = running + range.startOffset;
-        }
-        if (node === range.endContainer) {
-          end = running + range.endOffset;
-          break;
-        }
-        running += node.textContent?.length ?? 0;
-      }
-
-      if (typeof start !== "number" || typeof end !== "number") return null;
+      if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
       if (end <= start) return null;
 
       return { startOffset: start, endOffset: end };
@@ -139,17 +120,21 @@ const ViewPdf = () => {
   // Apply highlights to PDF text layer after rendering
   useEffect(() => {
     if (viewMode === "pdf" && activeFileId) {
-      // Delay to ensure Page component has rendered and text layer is available
-      const timeoutId = setTimeout(() => {
+      // Retry a few times to ensure the PDF text layer has rendered before applying styles.
+      let attempts = 0;
+      let timeoutId;
+
+      const apply = () => {
+        attempts += 1;
         const pageHighlights = getHighlights(activeFileId);
-        // Use the correct selector for react-pdf text layer
-        // Try multiple selectors as the structure may vary
-        highlightTextInPDF(
-          ".react-pdf__Page__textLayer",
-          pageHighlights,
-          pageNumber,
-        );
-      }, 200);
+        highlightTextInPDF(".textLayer", pageHighlights, pageNumber);
+
+        if (attempts < 6) {
+          timeoutId = setTimeout(apply, 150);
+        }
+      };
+
+      timeoutId = setTimeout(apply, 50);
 
       return () => clearTimeout(timeoutId);
     }
@@ -162,6 +147,32 @@ const ViewPdf = () => {
 
     if (selectedText.length > 0) {
       setSelectedText(selectedText);
+
+      // Capture offsets at selection-time; clicking the popup buttons often clears the DOM selection.
+      try {
+        let offsets = null;
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const ancestorEl =
+            range.commonAncestorContainer?.nodeType === Node.ELEMENT_NODE
+              ? range.commonAncestorContainer
+              : range.commonAncestorContainer?.parentElement;
+
+          if (viewMode === "pdf") {
+            const pdfTextLayer =
+              ancestorEl?.closest?.(".textLayer") ||
+              document.querySelector(".react-pdf__Page__textLayer") ||
+              document.querySelector(".textLayer") ||
+              document.querySelector(".react-pdf__Page__textContent");
+            offsets = getSelectionOffsetsWithin(pdfTextLayer);
+          } else {
+            offsets = getSelectionOffsetsWithin(textModeContainerRef.current);
+          }
+        }
+        setSelectedOffsets(offsets);
+      } catch {
+        setSelectedOffsets(null);
+      }
       try {
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
@@ -190,6 +201,7 @@ const ViewPdf = () => {
       }
     } else {
       setShowPopup(false);
+      setSelectedOffsets(null);
     }
   };
 
@@ -278,15 +290,20 @@ const ViewPdf = () => {
 
     // Save ONLY to local highlights (FileContext)
     // Do NOT save to backend API
+    // Fallback: attempt to recapture offsets (may be null if selection was cleared)
     let offsets = null;
-    if (viewMode === "pdf") {
-      const pdfContainer =
-        document.querySelector(".react-pdf__Page__textLayer") ||
-        document.querySelector(".textLayer") ||
-        document.querySelector(".react-pdf__Page__textContent");
-      offsets = getSelectionOffsetsWithin(pdfContainer);
-    } else {
-      offsets = getSelectionOffsetsWithin(textModeContainerRef.current);
+    try {
+      if (viewMode === "pdf") {
+        const pdfContainer =
+          document.querySelector(".react-pdf__Page__textLayer") ||
+          document.querySelector(".textLayer") ||
+          document.querySelector(".react-pdf__Page__textContent");
+        offsets = getSelectionOffsetsWithin(pdfContainer);
+      } else {
+        offsets = getSelectionOffsetsWithin(textModeContainerRef.current);
+      }
+    } catch {
+      offsets = null;
     }
 
     const highlightData = {
@@ -295,7 +312,7 @@ const ViewPdf = () => {
       timestamp: new Date().toISOString(),
       saved: false,
       color: "yellow",
-      ...offsets,
+      ...(selectedOffsets || offsets || {}),
     };
 
     console.log("=== HIGHLIGHTING ===");
@@ -310,6 +327,7 @@ const ViewPdf = () => {
     console.log("Text highlighted locally:", selectedText);
     setShowPopup(false);
     setSelectedText("");
+    setSelectedOffsets(null);
     // Clear browser selection
     window.getSelection().removeAllRanges();
   };
@@ -327,15 +345,20 @@ const ViewPdf = () => {
 
     setSaving(true);
     try {
+      // Fallback: attempt to recapture offsets (may be null if selection was cleared)
       let offsets = null;
-      if (viewMode === "pdf") {
-        const pdfContainer =
-          document.querySelector(".react-pdf__Page__textLayer") ||
-          document.querySelector(".textLayer") ||
-          document.querySelector(".react-pdf__Page__textContent");
-        offsets = getSelectionOffsetsWithin(pdfContainer);
-      } else {
-        offsets = getSelectionOffsetsWithin(textModeContainerRef.current);
+      try {
+        if (viewMode === "pdf") {
+          const pdfContainer =
+            document.querySelector(".react-pdf__Page__textLayer") ||
+            document.querySelector(".textLayer") ||
+            document.querySelector(".react-pdf__Page__textContent");
+          offsets = getSelectionOffsetsWithin(pdfContainer);
+        } else {
+          offsets = getSelectionOffsetsWithin(textModeContainerRef.current);
+        }
+      } catch {
+        offsets = null;
       }
 
       // First, add to local highlights with saved flag
@@ -345,7 +368,7 @@ const ViewPdf = () => {
         timestamp: new Date().toISOString(),
         saved: true,
         color: "yellow",
-        ...offsets,
+        ...(selectedOffsets || offsets || {}),
       };
 
       addHighlight(activeFileId, localHighlight);
@@ -376,6 +399,7 @@ const ViewPdf = () => {
 
       setShowPopup(false);
       setSelectedText("");
+      setSelectedOffsets(null);
       alert("Note saved successfully!");
 
       // Clear browser selection
@@ -393,6 +417,7 @@ const ViewPdf = () => {
     alert("AI Summary feature coming soon!");
     setShowPopup(false);
     setSelectedText("");
+    setSelectedOffsets(null);
     window.getSelection().removeAllRanges();
   };
 
