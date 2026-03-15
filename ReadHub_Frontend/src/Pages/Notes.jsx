@@ -34,10 +34,13 @@ const Notes = () => {
     const id = book?._id ?? book?.id ?? book?.bookId;
     if (id) fileIndex.set(String(id), book);
   });
+  const validBookIds = new Set(fileIndex.keys());
 
   const highlightEntries = Object.entries(highlightMap || {});
   const allLocalHighlights = highlightEntries.flatMap(([bookId, items]) =>
-    Array.isArray(items) ? items.map((h) => ({ ...h, bookId })) : [],
+    Array.isArray(items) && validBookIds.has(String(bookId))
+      ? items.map((h) => ({ ...h, bookId }))
+      : [],
   );
 
   // Saved local highlights should appear as notes (and be grouped below)

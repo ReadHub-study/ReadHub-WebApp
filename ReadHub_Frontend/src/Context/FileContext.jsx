@@ -23,6 +23,10 @@ export function FileProvider({ children }) {
   const [loading, setLoading] = useState(false);
 
   const [currentPage, setCurrentPage] = useState({});
+  const [highlights, setHighlights] = useState(() => {
+    const saved = localStorage.getItem("appHighlights");
+    return saved ? JSON.parse(saved) : {};
+  });
 
   const debouncedSave = useCallback(
     debounce(async (fileId, page) => {
@@ -30,6 +34,8 @@ export function FileProvider({ children }) {
     }, 1000),
     [],
   );
+
+  const getBookKey = (book) => book?._id ?? book?.id ?? book?.bookId ?? null;
 
   const updateCurrentPage = (fileId, page) => {
     setCurrentPage((prev) => ({
@@ -43,7 +49,12 @@ export function FileProvider({ children }) {
   const fetchBooks = useCallback(async () => {
     try {
       setLoading(true);
-      const books = await backendApi.getBooks();
+      const response = await backendApi.getBooks();
+      const books = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.books)
+          ? response.books
+          : [];
 
       const savedPages = {};
       books.forEach((book) => {
@@ -115,6 +126,11 @@ export function FileProvider({ children }) {
           delete updated[bookId];
           return updated;
         });
+        setHighlights((prev) => {
+          const next = { ...prev };
+          delete next[bookId];
+          return next;
+        });
       } catch (error) {
         throw error;
       }
@@ -134,11 +150,6 @@ export function FileProvider({ children }) {
       );
     } catch (error) {}
   }, []);
-  const [highlights, setHighlights] = useState(() => {
-    const saved = localStorage.getItem("appHighlights");
-    return saved ? JSON.parse(saved) : {};
-  });
-
   useEffect(() => {
     try {
       localStorage.setItem("appHighlights", JSON.stringify(highlights));
@@ -146,6 +157,32 @@ export function FileProvider({ children }) {
       console.error("Failed to save highlights to localStorage:", error);
     }
   }, [highlights]);
+
+  // Prune local highlights for books that no longer exist (e.g. deleted from Library)
+  useEffect(() => {
+    const validIds = new Set(
+      (files || [])
+        .map((f) => getBookKey(f?.book ?? f))
+        .filter(Boolean)
+        .map(String),
+    );
+
+    setHighlights((prev) => {
+      const keys = Object.keys(prev || {});
+      if (keys.length === 0) return prev;
+
+      let changed = false;
+      const next = { ...prev };
+      keys.forEach((key) => {
+        if (!validIds.has(String(key))) {
+          delete next[key];
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [files]);
 
   const addFile = (file) => {
     setFiles((prev) => [...prev, file]);
