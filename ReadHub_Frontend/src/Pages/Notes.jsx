@@ -7,7 +7,7 @@ const Notes = () => {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { files, getHighlights } = useFiles();
+  const { files, highlights: highlightMap } = useFiles();
 
   useEffect(() => {
     fetchNotes();
@@ -28,18 +28,45 @@ const Notes = () => {
     }
   };
 
-  // Get local highlights from FileContext
-  // Local highlights that were saved as notes should appear here
-  const localHighlights = files.flatMap((file) => {
-    const fileHighlights = getHighlights(file.id) || [];
-    return fileHighlights
-      .filter((h) => h.saved) // Only include highlights that were saved as notes
-      .map((highlight) => ({
-        ...highlight,
-        bookId: file.id,
-        bookTitle: file.name,
-      }));
+  const fileIndex = new Map();
+  (files || []).forEach((f) => {
+    const book = f?.book ?? f;
+    const id = book?._id ?? book?.id ?? book?.bookId;
+    if (id) fileIndex.set(String(id), book);
   });
+
+  const highlightEntries = Object.entries(highlightMap || {});
+  const allLocalHighlights = highlightEntries.flatMap(([bookId, items]) =>
+    Array.isArray(items) ? items.map((h) => ({ ...h, bookId })) : [],
+  );
+
+  // Saved local highlights should appear as notes (and be grouped below)
+  const apiNoteKeys = new Set(
+    (notes || []).map((n) => {
+      const id = n?.book?._id ? String(n.book._id) : "unknown";
+      const page = typeof n?.page === "number" ? n.page : "";
+      const content = (n?.content || "").trim();
+      return `${id}|${page}|${content}`;
+    }),
+  );
+
+  const localHighlights = allLocalHighlights
+    .filter((h) => h.saved)
+    .filter((h) => {
+      const id = String(h.bookId || "unknown");
+      const page = typeof h.page === "number" ? h.page : "";
+      const content = (h.text || "").trim();
+      return !apiNoteKeys.has(`${id}|${page}|${content}`);
+    })
+    .map((h) => {
+      const book = fileIndex.get(String(h.bookId));
+      const title =
+        book?.title ?? book?.name ?? book?.filename ?? "Unknown Book";
+      return {
+        ...h,
+        bookTitle: title,
+      };
+    });
 
   // Group combined notes by book: both local and API
   const groupedNotes = {};
@@ -78,8 +105,8 @@ const Notes = () => {
     });
   });
 
-  // Total highlights = local saved + API notes
-  const totalHighlights = localHighlights.length + notes.length;
+  // Total highlights = all local highlights made in the reader (pdf/text)
+  const totalHighlights = allLocalHighlights.length;
   // Total books = unique books that have notes
   const totalBooks = Object.keys(groupedNotes).length;
   return (

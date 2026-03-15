@@ -117,22 +117,23 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
   // Track highlights to ensure re-render when they change
   const { highlights: allHighlights } = useFiles();
   const [highlights, setHighlights] = useState([]);
+  const fileKey = file?._id ?? file?.id ?? file?.bookId ?? null;
 
   useEffect(() => {
-    if (file?.id && allHighlights) {
-      const fileHighlights = allHighlights[file.id] || [];
+    if (fileKey && allHighlights) {
+      const fileHighlights = allHighlights[fileKey] || [];
       setHighlights(fileHighlights);
       console.log(
         "CustomTextViewer: Highlights updated for file",
-        file.id,
+        fileKey,
         "- Page",
-        currentPage + 1,
+        pageNumber,
         "has",
-        fileHighlights.filter((h) => h.page === currentPage + 1).length,
+        fileHighlights.filter((h) => h.page === pageNumber).length,
         "highlights",
       );
     }
-  }, [file?.id, allHighlights]);
+  }, [fileKey, allHighlights, pageNumber]);
 
   // Get highlights for current file
   const currentHighlights = highlights;
@@ -180,7 +181,11 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
   return (
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto px-4">
-        <div {...swipeHandlers}>
+        <div
+          {...swipeHandlers}
+          onMouseUpCapture={handleTextSelectionWithFallback}
+          onTouchEndCapture={handleTextSelectionWithFallback}
+        >
           {paragraphs.map((paragraph, index) => (
             <p
               key={index}
@@ -189,7 +194,7 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
                 theme ? "text-[#ECF0F8]" : "text-[#1A1A1A]"
               }`}
             >
-              {paragraph}
+              {renderTextWithHighlights(paragraph, currentHighlights, pageNumber)}
             </p>
           ))}
         </div>

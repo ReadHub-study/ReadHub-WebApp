@@ -23,8 +23,15 @@ const ViewPdf = () => {
     files,
     addHighlight,
     getHighlights,
+    highlights,
     fetchBooks,
   } = useFiles();
+
+  const activeFile = selectedFile2?.book ?? selectedFile2;
+  const activeFileId =
+    activeFile?._id ?? activeFile?.id ?? activeFile?.bookId ?? null;
+  const activeFileTitle =
+    activeFile?.title ?? activeFile?.name ?? activeFile?.filename ?? "Untitled";
 
   const [numPages, setNumPages] = useState(null);
 
@@ -71,15 +78,15 @@ const ViewPdf = () => {
     }
   }, [fileId, files, loading, hasFetched, selectFile, navigate]);
 
-  const savedPage = selectedFile2?.lastPageRead || 1;
+  const savedPage = activeFile?.lastPageRead || 1;
   const pageNumber = currentPage[fileId] || savedPage;
 
   // Apply highlights to PDF text layer after rendering
   useEffect(() => {
-    if (viewMode === "pdf" && selectedFile2?.id) {
+    if (viewMode === "pdf" && activeFileId) {
       // Delay to ensure Page component has rendered and text layer is available
       const timeoutId = setTimeout(() => {
-        const pageHighlights = getHighlights(selectedFile2.id);
+        const pageHighlights = getHighlights(activeFileId);
         // Use the correct selector for react-pdf text layer
         // Try multiple selectors as the structure may vary
         highlightTextInPDF(
@@ -91,7 +98,7 @@ const ViewPdf = () => {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [viewMode, pageNumber, selectedFile2?.id]);
+  }, [viewMode, pageNumber, activeFileId, getHighlights, highlights]);
 
   // Handle text selection
   const handleTextSelection = () => {
@@ -208,7 +215,7 @@ const ViewPdf = () => {
     if (
       !selectedText ||
       selectedText.trim().length === 0 ||
-      !selectedFile2?.id
+      !activeFileId
     ) {
       alert("Please select some text first");
       return;
@@ -224,13 +231,13 @@ const ViewPdf = () => {
     };
 
     console.log("=== HIGHLIGHTING ===");
-    console.log("File ID:", selectedFile2.id);
-    console.log("File Name:", selectedFile2.name);
+    console.log("File ID:", activeFileId);
+    console.log("File Title:", activeFileTitle);
     console.log("Page:", pageNumber);
     console.log("Selected Text:", selectedText.trim());
     console.log("Highlight Data:", highlightData);
 
-    addHighlight(selectedFile2.id, highlightData);
+    addHighlight(activeFileId, highlightData);
 
     console.log("Text highlighted locally:", selectedText);
     setShowPopup(false);
@@ -244,7 +251,7 @@ const ViewPdf = () => {
     if (
       !selectedText ||
       selectedText.trim().length === 0 ||
-      !selectedFile2?.id
+      !activeFileId
     ) {
       alert("Please select some text first");
       return;
@@ -260,17 +267,19 @@ const ViewPdf = () => {
         saved: true,
       };
 
-      addHighlight(selectedFile2.id, localHighlight);
+      addHighlight(activeFileId, localHighlight);
 
-      // If bookId is available (from backend), also save to backend
-      if (selectedFile2.bookId) {
+      // Also save to backend API using the current book id
+      if (activeFileId) {
         const payload = {
-          bookId: selectedFile2.bookId,
+          bookId: activeFileId,
           content: selectedText.trim(),
           pageNumber: pageNumber,
         };
 
-        console.log("Saving note to backend with:", payload);
+        console.log("Saving note to backend with:", payload, {
+          bookTitle: activeFileTitle,
+        });
 
         try {
           const response = await axiosConfig.post(apiEndpoints.NOTES, payload);
@@ -282,10 +291,6 @@ const ViewPdf = () => {
           );
           // Continue - the note is already saved locally
         }
-      } else {
-        console.log(
-          "Note saved locally (no bookId available for backend sync)",
-        );
       }
 
       setShowPopup(false);
@@ -468,7 +473,7 @@ const ViewPdf = () => {
       <div className="top-15 relative">
         <div className="px-4 ">
           <h2 className="text-tittle_Medium font-medium text-[14px] leading-[20px] truncate">
-            {selectedFile2.title}
+            {activeFileTitle}
           </h2>
           <h2 className="font-bold text-[20px] leading-[185%] pb-5">
             Page {pageNumber} of {numPages}
@@ -481,9 +486,10 @@ const ViewPdf = () => {
             <div
               className=" flex justify-center overflow-hidden w-dvw"
               onMouseUpCapture={handleTextSelection}
+              onTouchEndCapture={handleTextSelection}
             >
               <Document
-                file={selectedFile2.fileUrl}
+                file={activeFile?.fileUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
                 loading={<div>Loading PDF...</div>}
                 error={<div>Failed to load PDF.</div>}
@@ -492,7 +498,7 @@ const ViewPdf = () => {
                 <Page
                   pageNumber={pageNumber}
                   renderAnnotationLayer={false}
-                  renderTextLayer={false}
+                  renderTextLayer={true}
                   scale={scale}
                   devicePixelRatio={window.devicePixelRatio}
                 />
@@ -500,8 +506,8 @@ const ViewPdf = () => {
             </div>
           ) : (
             <CustomTextViewer
-              fileData={selectedFile2.fileUrl}
-              file={selectedFile2}
+              fileData={activeFile?.fileUrl}
+              file={activeFile}
               theme={darkToggle}
               scale={scaleFont}
               onTextSelect={handleTextSelection}
@@ -513,37 +519,39 @@ const ViewPdf = () => {
         {showPopup && (
           <div
             ref={popupRef}
-            className="fixed bg-white text-gray-900 rounded-[12px] p-3 shadow-xl z-50 flex gap-2 flex-wrap justify-center border border-gray-300"
+            className="fixed z-50"
             style={{
               left: `${popupPosition.x}px`,
               top: `${popupPosition.y}px`,
               transform: "translate(-50%, 0)",
-              maxWidth: "280px",
+              maxWidth: "340px",
               minWidth: "fit-content",
             }}
           >
-            <button
-              onClick={handleHighlight}
-              className="px-3 py-2 bg-blue-500 text-white rounded-[8px] text-xs font-medium hover:bg-blue-600 transition-colors whitespace-nowrap"
-              title="Highlight selected text permanently"
-            >
-              ✓ Highlight
-            </button>
-            <button
-              onClick={handleSaveNote}
-              disabled={saving}
-              className="px-3 py-2 bg-green-500 text-white rounded-[8px] text-xs font-medium hover:bg-green-600 transition-colors disabled:opacity-50 whitespace-nowrap"
-              title="Save note to your library"
-            >
-              {saving ? "Saving..." : "💾 Save"}
-            </button>
-            <button
-              onClick={handleAISummary}
-              className="px-3 py-2 bg-purple-500 text-white rounded-[8px] text-xs font-medium hover:bg-purple-600 transition-colors whitespace-nowrap"
-              title="Get AI summary of selected text"
-            >
-              ✨ AI Summary
-            </button>
+            <div className="grid grid-cols-3 gap-2 p-2 rounded-[14px] shadow-xl border border-[#DDE8FF] bg-white/95 backdrop-blur">
+              <button
+                onClick={handleHighlight}
+                className="w-full text-center rounded-[12px] bg-primary text-white px-3 py-2 text-xs font-semibold hover:bg-[#0653C6] transition-colors"
+                title="Highlight selected text permanently"
+              >
+                Highlight
+              </button>
+              <button
+                onClick={handleSaveNote}
+                disabled={saving}
+                className="w-full text-center rounded-[12px] bg-primary text-white px-3 py-2 text-xs font-semibold hover:bg-[#0653C6] transition-colors disabled:opacity-60"
+                title="Save note to your library"
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+              <button
+                onClick={handleAISummary}
+                className="w-full text-center rounded-[12px] bg-primary text-white px-3 py-2 text-xs font-semibold hover:bg-[#0653C6] transition-colors"
+                title="Get AI summary of selected text"
+              >
+                AI Summary
+              </button>
+            </div>
           </div>
         )}
 

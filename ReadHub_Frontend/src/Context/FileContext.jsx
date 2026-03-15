@@ -158,13 +158,22 @@ export function FileProvider({ children }) {
   const addHighlight = useCallback((fileId, highlight) => {
     setHighlights((prev) => {
       const fileHighlights = prev[fileId] || [];
-      // Check if this exact highlight already exists (to avoid duplicates)
-      const exists = fileHighlights.some(
+      // If this highlight already exists, merge updates (e.g. saved: false -> true)
+      const existingIndex = fileHighlights.findIndex(
         (h) => h.text === highlight.text && h.page === highlight.page,
       );
 
-      if (exists) {
-        return prev;
+      if (existingIndex !== -1) {
+        const updated = [...fileHighlights];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          ...highlight,
+          saved: Boolean(updated[existingIndex].saved || highlight.saved),
+        };
+        return {
+          ...prev,
+          [fileId]: updated,
+        };
       }
 
       return {
