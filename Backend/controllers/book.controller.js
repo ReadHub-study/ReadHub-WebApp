@@ -2,7 +2,7 @@ import cloudinary from '../config/cloudinary.js'
 import Book from '../models/Books.js'
 import ReadingSession from '../models/readingSession.js'
 import UserStats from '../models/userStatistics.js'
-import Notes from './../models/Notes,js'
+import Notes from './../models/Notes.js'
 
 export const generatePdfSignature = async (req, res) => {
   try {
