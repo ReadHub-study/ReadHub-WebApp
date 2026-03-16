@@ -12,7 +12,34 @@ const Profile = () => {
     const fileInputRef = useRef(null);
     const navigate = useNavigate();
     const [readingGoal, setReadingGoal] = useState(30);
-    const { files, highlights: highlightMap } = useFiles()
+    const { files, highlights: highlightMap, currentPage } = useFiles()
+
+    // Match Library.jsx "completed/reading" logic so Statistics aligns with what user sees in Library.
+      const { completedFromLibrary, readingFromLibrary } = useMemo(() => {
+        const list = Array.isArray(files) ? files : []
+        let completedCount = 0
+        let readingCount = 0
+    
+        list.forEach((b) => {
+          const id = b?._id
+          const pages = Number(b?.pages || 0)
+          if (!id || !Number.isFinite(pages) || pages <= 0) return
+    
+          const page = Number(currentPage?.[id] ?? b?.lastPageRead ?? 0)
+          if (!Number.isFinite(page)) return
+    
+          if (page >= pages) {
+            completedCount += 1
+          } else if (page > 0 && page < pages) {
+            readingCount += 1
+          }
+        })
+    
+        return { completedFromLibrary: completedCount, readingFromLibrary: readingCount }
+      }, [files, currentPage])
+
+    const completedBooks = completedFromLibrary
+    const currentlyReading = readingFromLibrary
 
     const totalBooks = Array.isArray(files) ? files.length : 0;
 
@@ -166,7 +193,7 @@ const Profile = () => {
                         <span>
                             <img src={ReadHubImages.bookIcon} alt="" className="w-6 h-6" />
                         </span>
-                        <span className="font-semibold text-xl">0</span>
+                        <span className="font-semibold text-xl">{completedBooks}</span>
                         <span className="font-light">Books Read</span>
                     </div>
                     <div className="flex flex-col gap-3 bg-white p-5 rounded-lg">
@@ -187,8 +214,8 @@ const Profile = () => {
                         <span>
                             <img src={ReadHubImages.highlightIcon} alt="" className="w-8 h-8" />
                         </span>
-                        <span className="font-semibold text-xl">0</span>
-                        <span className="font-light">{totalHighlights}</span>
+                        <span className="font-semibold text-xl">{totalHighlights}</span>
+                        <span className="font-light">Highlights</span>
                     </div>
                 </div>
 
