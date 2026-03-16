@@ -100,7 +100,7 @@ export function FileProvider({ children }) {
 
       return savedBook;
     } catch (error) {
-      throw error;
+      throw (error, console.log(error));
     }
   }, []);
 
