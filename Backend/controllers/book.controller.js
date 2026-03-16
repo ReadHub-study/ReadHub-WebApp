@@ -1,5 +1,8 @@
 import cloudinary from '../config/cloudinary.js'
 import Book from '../models/Books.js'
+import ReadingSession from '../models/readingSession.js'
+import UserStats from '../models/userStatistics.js'
+import Notes from './../models/Notes.js'
 
 export const generatePdfSignature = async (req, res) => {
   try {
@@ -63,7 +66,7 @@ export const uploadBook = async (req, res) => {
       .json({ message: 'Book uploaded successfully', book: newBook })
   } catch (error) {
     console.error('Error uploading book:', error)
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: `Error uploading book ${error.message}` })
   }
 }
 
@@ -146,10 +149,177 @@ export const deleteBook = async (req, res) => {
     if (!book) {
       return res.status(404).json({ message: 'Book not found' })
     }
+    await Notes.deleteMany({ book: bookId, user: req.user.id })
+    await ReadingSession.deleteMany({ book: bookId, user: req.user.id })
     res.json({ message: 'Book deleted successfully' })
   } catch (error) {
     return res
       .status(500)
       .json({ message: 'Error deleting book', error: error.message })
+  }
+}
+
+export const startReading = async (req, res) => {
+  try {
+    const { bookId, startPage } = req.body
+
+    let readingBook = await ReadingSession.findOne({
+      book: bookId,
+      user: req.user.id,
+    })
+
+    if (!readingBook) {
+      readingBook = await ReadingSession.create({
+        user: req.user.id,
+        book: bookId,
+        startTime: new Date(),
+        startPage,
+      })
+    } else {
+      readingBook.startPage = startPage
+      readingBook.startTime = new Date()
+      await readingBook.save()
+    }
+
+    return res.status(201).json({
+      message: 'Session recorded',
+      session: readingBook,
+    })
+  } catch (error) {
+    console.log(error.message)
+    return res.status(500).json({ message: error.message })
+  }
+}
+
+export const endReading = async (req, res) => {
+  try {
+    const { sessionId, endPage } = req.body
+    const userId = req.user.id
+
+    const session = await ReadingSession.findById(sessionId)
+
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' })
+    }
+
+    session.endTime = new Date()
+
+    const duration = (session.endTime - session.startTime) / 1000 / 60
+    session.duration = Math.round(duration)
+    session.endPage = endPage
+    session.pagesRead = endPage - session.startPage
+
+    await session.save()
+
+    // UPDATE USER STATS
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    let stats = await UserStats.findOne({ user: userId })
+
+    if (!stats) {
+      stats = await UserStats.create({ user: userId })
+    }
+
+    stats.totalMinutesRead += session.duration
+
+    const lastDate = stats.lastReadingDate
+      ? new Date(stats.lastReadingDate).setHours(0, 0, 0, 0)
+      : null
+
+    const todayDate = new Date().setHours(0, 0, 0, 0)
+
+    if (lastDate === todayDate) {
+      stats.todayReadingMinutes += session.duration
+    } else {
+      stats.todayReadingMinutes = session.duration
+    }
+
+    stats.lastReadingDate = new Date()
+
+    if (stats.todayReadingMinutes >= stats.dailyReadingGoal) {
+      stats.currentStreak += 1
+
+      if (stats.currentStreak > stats.bestStreak) {
+        stats.bestStreak = stats.currentStreak
+      }
+    }
+
+    await stats.save()
+
+    res.json(session)
+  } catch (error) {
+    console.log(error.message)
+    res.status(500).json({ message: error.message })
+  }
+}
+
+export const getStatistics = async (req, res) => {
+  try {
+    const userId = req.user.id
+
+    const now = new Date()
+    const utcMidnight = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    )
+    const utcDay = utcMidnight.getUTCDay() // 0=Sun..6=Sat
+    const daysSinceMonday = (utcDay + 6) % 7 // Mon=0..Sun=6
+    const weekStart = new Date(utcMidnight)
+    weekStart.setUTCDate(weekStart.getUTCDate() - daysSinceMonday)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + 7)
+
+    const [userStats, completedBooks, currentlyReading, weekSessions] =
+      await Promise.all([
+      UserStats.findOne({ user: userId }).lean(),
+
+      Book.countDocuments({
+        uploadedBy: userId,
+        status: 'completed',
+      }),
+
+      Book.countDocuments({
+        uploadedBy: userId,
+        status: 'reading',
+      }),
+
+      ReadingSession.find({
+        user: userId,
+        endTime: { $gte: weekStart, $lt: weekEnd },
+        duration: { $type: 'number' },
+      })
+        .select('duration endTime')
+        .lean(),
+    ])
+
+    const dailyGoal = userStats?.dailyReadingGoal || 30
+    const weekMinutes = Array.from({ length: 7 }, () => 0)
+
+    ;(weekSessions || []).forEach((s) => {
+      if (!s?.endTime) return
+      const d = new Date(s.endTime)
+      const idx = (d.getUTCDay() + 6) % 7 // Mon=0..Sun=6
+      const minutes = Number(s.duration || 0)
+      if (!Number.isFinite(minutes) || minutes <= 0) return
+      weekMinutes[idx] += minutes
+    })
+
+    res.status(200).json({
+      dailyGoal,
+      todayReadingMinutes: userStats?.todayReadingMinutes || 0,
+      totalHoursRead: Number(
+        ((userStats?.totalMinutesRead || 0) / 60).toFixed(1),
+      ),
+      currentStreak: userStats?.currentStreak || 0,
+      bestStreak: userStats?.bestStreak || 0,
+      completedBooks,
+      currentlyReading,
+      weekMinutes,
+    })
+  } catch (error) {
+    res.status(500).json({
+      message: 'Error fetching statistics',
+      error: error.message,
+    })
   }
 }

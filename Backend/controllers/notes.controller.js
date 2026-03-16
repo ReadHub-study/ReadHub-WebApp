@@ -40,7 +40,6 @@ export const createNote = async (req, res) => {
 
     return res.status(201).json({
       message: 'Note created successfully',
-      note: savedNote,
     })
   } catch (error) {
     return res.status(500).json({
@@ -90,7 +89,7 @@ export const getAllNotes = async (req, res) => {
         match: { uploadedBy: userId },
         select: 'title author',
       })
-      .populate('createdBy')
+      .lean()
 
     const filteredNotes = notes.filter((note) => note.book !== null)
 
@@ -102,12 +101,15 @@ export const getAllNotes = async (req, res) => {
 
 export const getNoteById = async (req, res) => {
   try {
-    const note = await Notes.findById(req.params.id)
-      .populate('book')
-      .populate('createdBy')
+    const note = await Notes.findOne({
+      _id: req.params.id,
+      createdBy: req.user.id,
+    }).lean()
+
     if (!note) {
       return res.status(404).json({ message: 'Note not found' })
     }
+
     res.json(note)
   } catch (error) {
     res.status(500).json({ message: error.message })

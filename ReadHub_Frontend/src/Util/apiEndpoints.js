@@ -19,4 +19,6 @@ export const apiEndpoints = {
     CLOUDINARY_SIGNATURE: "/cloudinary-signature/image",
     NOTES: "notes",
     NOTES_BY_ID: "notes/:id",
+    USER_STATS: "stats",
+    BOOK_STATS: "book/stats",
 };

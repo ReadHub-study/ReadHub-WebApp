@@ -5,6 +5,9 @@ import {
   getBooks,
   updateBookProgress,
   bookStatus,
+  startReading,
+  endReading,
+  getStatistics,
 } from '../controllers/book.controller.js'
 import { authenticate } from '../middlewares/auth.middleware.js'
 
@@ -142,5 +145,172 @@ router.get('/status', authenticate, bookStatus)
  *         description: Unauthorized
  */
 router.delete('/:bookId', authenticate, deleteBook)
+
+/**
+ * @swagger
+ * /api/book/start:
+ *   post:
+ *     summary: Start a reading session
+ *     tags: [Books]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - bookId
+ *               - startPage
+ *             properties:
+ *               bookId:
+ *                 type: string
+ *                 description: ID of the book being read
+ *                 example: 64f1b2c9a1234567890abcd1
+ *               startPage:
+ *                 type: number
+ *                 description: Page where the user started reading
+ *                 example: 1
+ *     responses:
+ *       201:
+ *         description: Reading session started successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Session recorded
+ *                 session:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     user:
+ *                       type: string
+ *                     book:
+ *                       type: string
+ *                     startPage:
+ *                       type: number
+ *                     startTime:
+ *                       type: string
+ *                       format: date-time
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.post('/start', authenticate, startReading)
+/**
+ * @swagger
+ * /api/book/end:
+ *   post:
+ *     summary: End a reading session
+ *     tags: [Books]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - sessionId
+ *               - endPage
+ *             properties:
+ *               sessionId:
+ *                 type: string
+ *                 description: ID of the reading session
+ *                 example: 64f1b2c9a1234567890abcd1
+ *               endPage:
+ *                 type: number
+ *                 description: The page where the user stopped reading
+ *                 example: 120
+ *     responses:
+ *       200:
+ *         description: Reading session ended successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 startPage:
+ *                   type: number
+ *                 endPage:
+ *                   type: number
+ *                 pagesRead:
+ *                   type: number
+ *                 duration:
+ *                   type: number
+ *                 startTime:
+ *                   type: string
+ *                   format: date-time
+ *                 endTime:
+ *                   type: string
+ *                   format: date-time
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Reading session not found
+ *       500:
+ *         description: Server error
+ */
+router.post('/end', authenticate, endReading)
+
+/**
+ * @swagger
+ * /api/book/stats:
+ *   get:
+ *     summary: Get user reading statistics
+ *     tags: [Books]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved user statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 dailyGoal:
+ *                   type: number
+ *                   example: 30
+ *                   description: Daily reading goal in minutes
+ *                 todayReadingMinutes:
+ *                   type: number
+ *                   example: 45
+ *                   description: Total minutes read today
+ *                 totalHoursRead:
+ *                   type: number
+ *                   example: 120.5
+ *                   description: Total reading hours accumulated
+ *                 currentStreak:
+ *                   type: number
+ *                   example: 7
+ *                   description: Current reading streak in days
+ *                 bestStreak:
+ *                   type: number
+ *                   example: 14
+ *                   description: Longest reading streak achieved
+ *                 completedBooks:
+ *                   type: number
+ *                   example: 12
+ *                   description: Total books completed
+ *                 currentlyReading:
+ *                   type: number
+ *                   example: 3
+ *                   description: Books currently being read
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Error fetching statistics
+ */
+router.get('/stats', authenticate, getStatistics)
 
 export default router

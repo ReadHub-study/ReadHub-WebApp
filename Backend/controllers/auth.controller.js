@@ -12,7 +12,7 @@ export const register = async (req, res) => {
   try {
     const { username, email, password } = req.body
     if (!username || !email || !password) {
-      return res.status(400).json({ error: 'All fields are required' })
+      return res.status(400).json({ message: 'All fields are required' })
     }
 
     const existingUser = await User.findOne({
@@ -20,12 +20,14 @@ export const register = async (req, res) => {
     })
 
     if (existingUser) {
-      return res.status(400).json({ error: 'Email or username already in use' })
+      return res
+        .status(400)
+        .json({ message: 'Email or username already in use' })
     }
     if (password.length < 6) {
       return res
         .status(400)
-        .json({ error: 'Password must be at least 6 characters' })
+        .json({ message: 'Password must be at least 6 characters' })
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
@@ -39,9 +41,11 @@ export const register = async (req, res) => {
     return res.status(201).json({ message: 'User registered successfully' })
   } catch (error) {
     if (err.code === 11000) {
-      return res.status(400).json({ error: 'Email or username already in use' })
+      return res
+        .status(400)
+        .json({ message: 'Email or username already in use' })
     }
-    return res.status(500).json({ error: error.message })
+    return res.status(500).json({ message: error.message })
   }
 }
 
@@ -147,20 +151,20 @@ export const refreshToken = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken
     if (!refreshToken)
-      return res.status(401).json({ error: 'Refresh token missing' })
+      return res.status(401).json({ message: 'Refresh token missing' })
 
     const tokenExists = await User.findOne({ refreshToken })
     if (!tokenExists)
-      return res.status(403).json({ error: 'Invalid refresh token' })
+      return res.status(403).json({ message: 'Invalid refresh token' })
 
     jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-      if (err) return res.status(403).json({ error: 'Invalid refresh token' })
+      if (err) return res.status(403).json({ message: 'Invalid refresh token' })
 
       const newAccessToken = generateAccessToken(user)
       res.json({ accessToken: newAccessToken })
     })
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 }
 
@@ -168,13 +172,13 @@ export const logout = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken
     if (!refreshToken) {
-      return res.status(401).json({ error: 'Refresh token missing' })
+      return res.status(401).json({ message: 'Refresh token missing' })
     }
     await User.updateOne({ refreshToken }, { $unset: { refreshToken: 1 } })
     res.clearCookie('refreshToken')
     res.json({ message: 'User logged out successfully' })
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 }
 
@@ -183,26 +187,26 @@ export const passwordOTP = async (req, res) => {
     const { email } = req.body
 
     if (!email) {
-      return res.status(409).json({ Message: 'Email is required' })
+      return res.status(409).json({ message: 'Email is required' })
     }
 
     const user = await User.findOne({ email })
     if (!user) {
       return res
         .status(401)
-        .json({ Message: 'User not found, please register' })
+        .json({ message: 'User not found, please register' })
     }
     const username = user.username
     console.log(username)
 
     res.status(201).json({
-      Message: `Verification code sent to ${email}, check your inbox or spam folder`,
+      message: `Verification code sent to ${email}, check your inbox or spam folder`,
     })
 
     sendVerificationEmail(email, username)
   } catch (error) {
     return res.status(500).json({
-      Message: `Error in forget password API ${error.message}`,
+      message: `Error in forget password API ${error.message}`,
     })
   }
 }

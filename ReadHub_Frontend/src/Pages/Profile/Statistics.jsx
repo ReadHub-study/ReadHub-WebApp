@@ -1,10 +1,94 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { ReadHubImages } from '../../assets/asset'
 import { useNavigate } from 'react-router-dom'
+import axiosConfig from '../../Util/axiosConfig'
+import { apiEndpoints } from '../../Util/apiEndpoints'
+import { useFiles } from '../../Context/FileContext'
 
 const Statistics = () => {
 
-    const navigate = useNavigate();
+  const navigate = useNavigate()
+  const { files, highlights: highlightMap, currentPage } = useFiles()
+
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  const totalHighlights = useMemo(() => {
+    const entries = Object.values(highlightMap || {})
+    return entries.reduce(
+      (sum, items) => sum + (Array.isArray(items) ? items.length : 0),
+      0,
+    )
+  }, [highlightMap])
+
+  const totalBooks = Array.isArray(files) ? files.length : 0
+
+  // Match Library.jsx "completed/reading" logic so Statistics aligns with what user sees in Library.
+  const { completedFromLibrary, readingFromLibrary } = useMemo(() => {
+    const list = Array.isArray(files) ? files : []
+    let completedCount = 0
+    let readingCount = 0
+
+    list.forEach((b) => {
+      const id = b?._id
+      const pages = Number(b?.pages || 0)
+      if (!id || !Number.isFinite(pages) || pages <= 0) return
+
+      const page = Number(currentPage?.[id] ?? b?.lastPageRead ?? 0)
+      if (!Number.isFinite(page)) return
+
+      if (page >= pages) {
+        completedCount += 1
+      } else if (page > 0 && page < pages) {
+        readingCount += 1
+      }
+    })
+
+    return { completedFromLibrary: completedCount, readingFromLibrary: readingCount }
+  }, [files, currentPage])
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true)
+        const response = await axiosConfig.get(apiEndpoints.BOOK_STATS)
+        setStats(response.data)
+        setError(null)
+      } catch (err) {
+        console.error('Error fetching statistics:', err)
+        setError('Failed to load statistics')
+        setStats(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [])
+
+  const dailyGoal = stats?.dailyGoal ?? 30
+  const todayReadingMinutes = stats?.todayReadingMinutes ?? 0
+  const totalHoursRead = stats?.totalHoursRead ?? 0
+  const currentStreak = stats?.currentStreak ?? 0
+  const bestStreak = stats?.bestStreak ?? 0
+  const completedBooks = completedFromLibrary
+  const currentlyReading = readingFromLibrary
+
+  const weekLabels = useMemo(() => ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'], [])
+  const weekMinutes = Array.isArray(stats?.weekMinutes) && stats.weekMinutes.length === 7
+    ? stats.weekMinutes
+    : Array.from({ length: 7 }, () => 0)
+  const weekMax = Math.max(dailyGoal, ...weekMinutes, 1)
+
+  const todayProgressPct =
+    dailyGoal > 0 ? Math.min(100, Math.round((todayReadingMinutes / dailyGoal) * 100)) : 0
+
+  const completedPct =
+    totalBooks > 0 ? Math.min(100, Math.round((completedBooks / totalBooks) * 100)) : 0
+
+  const readingPct =
+    totalBooks > 0 ? Math.min(100, Math.round((currentlyReading / totalBooks) * 100)) : 0
 
   return (
     <>
@@ -14,31 +98,37 @@ const Statistics = () => {
              <span className='text-2xl font-medium'>Statistics</span>
         </div>
 
+        {error && (
+          <div className='mt-4 bg-red-50 text-red-700 border border-red-200 rounded-lg p-3'>
+            {error}
+          </div>
+        )}
+
         <div className="cards grid grid-cols-2 gap-4 mt-10">
             <div className='flex flex-col gap-3 bg-white p-5 rounded-lg'>
                 <span><img src={ReadHubImages.bookIcon} alt="" className='w-6 h-6' /></span>
-                <span className='font-semibold text-xl'>0</span>
+                <span className='font-semibold text-xl'>{loading ? '...' : completedBooks}</span>
                 <span className='font-light'>Books Read</span>
             </div>
             <div className='flex flex-col gap-3 bg-white p-5 rounded-lg'>
                 <span><img src={ReadHubImages.timeIcon} alt=""  className='w-6 h-6'/></span>
-                <span className='font-semibold text-xl'>0h</span>
+                <span className='font-semibold text-xl'>{loading ? '...' : `${totalHoursRead}h`}</span>
                 <span className='font-light'>Total Hours</span>
             </div>
             <div className='flex flex-col gap-3 bg-white p-5 rounded-lg'>
                 <span><img src={ReadHubImages.fireIcon} alt="" className='w-6 h-8' /></span>
-                <span className='font-semibold text-xl'>0</span>
+                <span className='font-semibold text-xl'>{loading ? '...' : currentStreak}</span>
                 <span className='font-light'>Day Streak</span>
             </div>
             <div className='flex flex-col gap-3 bg-white p-5 rounded-lg'>
                 <span><img src={ReadHubImages.highlightIcon} alt="" className='w-8 h-8' /></span>
-                <span className='font-semibold text-xl'>0</span>
+                <span className='font-semibold text-xl'>{totalHighlights}</span>
                 <span className='font-light'>Highlights</span>
             </div>
         </div>
 
 
-        <div className="card mt-10 bg-blue-500 flex flex-col gap-5 p-5 rounded-2xl justify-start items-start">
+        <div className="card mt-10 bg-blue-500 flex flex-col gap-5 p-5 rounded-2xl justify-start items-start w-full">
             <div className='flex flex-row justify-between w-full items-center'>
                 <div className='flex flex-row items-center justify-center gap-2'>
                     <span><img src={ReadHubImages.circlesIcon} alt="" /></span>
@@ -46,12 +136,17 @@ const Statistics = () => {
                 </div>
                 <div><span><img src={ReadHubImages.ForwardArrow} alt="" /></span></div>
             </div>
-            <div className='flex flex-col gap-1'>
+            <div className='flex flex-col gap-1 w-full justify-start items-start'>
                 <div className='flex flex-row justify-between items-center gap-46'>
                     <div><span className='text-white text-sm'>Today's Progress</span></div>
-                    <div><span className='text-white text-sm'>0/30min</span></div>
+                    <div><span className='text-white text-sm'>{loading ? '.../...' : `${todayReadingMinutes}/${dailyGoal}min`}</span></div>
                 </div>
-                <div className="card bg-blue-200 p-2 mt-5 rounded-lg"><span></span></div>
+                <div className="w-full h-3 bg-blue-200 mt-5 rounded-lg overflow-hidden">
+                  <div
+                    className="h-full bg-white/90 rounded-lg transition-all duration-300"
+                    style={{ width: `${todayProgressPct}%` }}
+                  />
+                </div>
             </div>
         </div>
 
@@ -60,35 +155,23 @@ const Statistics = () => {
                 <span><img src={ReadHubImages.calendarIcon} alt="" /></span>
                 <span className='text-xl font-medium'>This week</span>
             </div>
-            <div className='flex flex-row gap-1 w-full items-end justify-between'>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-8 bg-blue-300 rounded-t-3xl'><span></span></div>
-                    <span>Mon</span>
-                </div>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-16 bg-blue-500 rounded-t-3xl'><span></span></div>
-                    <span>Tue</span>
-                </div>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-20 bg-blue-500 rounded-t-3xl'><span></span></div>
-                    <span>Wed</span>
-                </div>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-10 bg-blue-300 rounded-t-3xl'><span></span></div>
-                    <span>Thur</span>
-                </div>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-22 bg-blue-300 rounded-t-3xl'><span></span></div>
-                    <span>Fri</span>
-                </div>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-14 bg-blue-500 rounded-t-3xl'><span></span></div>
-                    <span>Sat</span>
-                </div>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-16 bg-blue-500 rounded-t-3xl'><span></span></div>
-                    <span>Sun</span>
-                </div>
+            <div className='flex flex-row w-full items-end justify-between gap-2 h-32'>
+              {weekLabels.map((label, idx) => {
+                const minutes = Number(weekMinutes[idx] || 0)
+                const metGoal = minutes >= dailyGoal
+                const height = Math.max(10, Math.round((minutes / weekMax) * 110))
+
+                return (
+                  <div key={label} className='flex flex-col items-center justify-end gap-2 flex-1'>
+                    <div
+                      className={`${metGoal ? 'bg-blue-500' : 'bg-blue-300'} w-full max-w-[44px] rounded-t-3xl transition-all duration-300`}
+                      style={{ height: `${height}px` }}
+                      title={loading ? '' : `${minutes} min`}
+                    />
+                    <span className='text-sm text-gray-700'>{label}</span>
+                  </div>
+                )
+              })}
             </div>
             <div className='flex flex-row gap-4 items-center justify-center'>
                 <div className='flex flex-row gap-2 justify-center items-center'>
@@ -110,23 +193,32 @@ const Statistics = () => {
             <div className='flex flex-col gap-3 justify-start items-start w-full mt-3'>
                 <div className='flex flex-row w-full justify-between items-center'>
                     <span className='text-gray-600'>Completed books</span>
-                    <span className='text-gray-600'>0</span>
+                    <span className='text-gray-600'>{loading ? '...' : completedBooks}</span>
                 </div>
-                <div className='p-1 rounded-xl bg-gray-200 w-full'><span></span></div>
+                <div className='h-3 rounded-xl bg-gray-200 w-full overflow-hidden'>
+                  <div className='h-full bg-blue-500 rounded-xl' style={{ width: `${completedPct}%` }} />
+                </div>
             </div>
             <div className='flex flex-col gap-3 justify-start items-start w-full'>
                 <div className='flex flex-row w-full justify-between items-center'>
                     <span className='text-gray-600'>Currently Reading</span>
-                    <span className='text-gray-600'>2</span>
+                    <span className='text-gray-600'>{loading ? '...' : currentlyReading}</span>
                 </div>
-                <div className='p-1 rounded-xl bg-gray-200 w-full'><span></span></div>
+                <div className='h-3 rounded-xl bg-gray-200 w-full overflow-hidden'>
+                  <div className='h-full bg-blue-300 rounded-xl' style={{ width: `${readingPct}%` }} />
+                </div>
             </div>
             <div className='flex flex-col gap-3 justify-start items-start w-full'>
                 <div className='flex flex-row w-full justify-between items-center'>
                     <span className='text-gray-600'>Best Streak</span>
-                    <span className='text-gray-600'>0 days</span>
+                    <span className='text-gray-600'>{loading ? '...' : `${bestStreak} days`}</span>
                 </div>
-                <div className='p-1 rounded-xl bg-gray-200 w-full'><span></span></div>
+                <div className='h-3 rounded-xl bg-gray-200 w-full overflow-hidden'>
+                  <div
+                    className='h-full bg-gray-400 rounded-xl'
+                    style={{ width: `${bestStreak > 0 ? 100 : 0}%` }}
+                  />
+                </div>
             </div>
         </div>
 
