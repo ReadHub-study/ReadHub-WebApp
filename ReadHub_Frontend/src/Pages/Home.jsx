@@ -25,21 +25,21 @@ const Home = () => {
   // for fetching the user details so that it displays the username
   useEffect(() => {
     const fetchUserProfile = async () => {
-      try {
-        const { data } = await axiosConfig.get(apiEndpoints.USER_PROFILE);
-        setUser(data.user);
-        setImage(data.user.profilePicture);
-      } catch (error) {
-        console.error("Error fetching user profile:", error);
-      }
-      fetchUserProfile();
+            try {
+                const { data } = await axiosConfig.get(apiEndpoints.USER_PROFILE);
+                setUser(data.user);
+                setImage(data.user.profilePicture);
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+            }
+        };
+        fetchUserProfile();
 
       // Load reading goal from localStorage
       const saved = localStorage.getItem("readingGoal");
       if (saved) {
         setReadingGoal(parseInt(saved));
       }
-    };
   }, []);
 
   useEffect(() => {

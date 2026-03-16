@@ -98,7 +98,7 @@ const Statistics = () => {
         </div>
 
 
-        <div className="card mt-10 bg-blue-500 flex flex-col gap-5 p-5 rounded-2xl justify-start items-start">
+        <div className="card mt-10 bg-blue-500 flex flex-col gap-5 p-5 rounded-2xl justify-start items-start w-full">
             <div className='flex flex-row justify-between w-full items-center'>
                 <div className='flex flex-row items-center justify-center gap-2'>
                     <span><img src={ReadHubImages.circlesIcon} alt="" /></span>
@@ -106,7 +106,7 @@ const Statistics = () => {
                 </div>
                 <div><span><img src={ReadHubImages.ForwardArrow} alt="" /></span></div>
             </div>
-            <div className='flex flex-col gap-1'>
+            <div className='flex flex-col gap-1 w-full justify-start items-start'>
                 <div className='flex flex-row justify-between items-center gap-46'>
                     <div><span className='text-white text-sm'>Today's Progress</span></div>
                     <div><span className='text-white text-sm'>{loading ? '.../...' : `${todayReadingMinutes}/${dailyGoal}min`}</span></div>
