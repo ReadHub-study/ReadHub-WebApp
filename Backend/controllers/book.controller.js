@@ -258,7 +258,19 @@ export const getStatistics = async (req, res) => {
   try {
     const userId = req.user.id
 
-    const [userStats, completedBooks, currentlyReading] = await Promise.all([
+    const now = new Date()
+    const utcMidnight = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    )
+    const utcDay = utcMidnight.getUTCDay() // 0=Sun..6=Sat
+    const daysSinceMonday = (utcDay + 6) % 7 // Mon=0..Sun=6
+    const weekStart = new Date(utcMidnight)
+    weekStart.setUTCDate(weekStart.getUTCDate() - daysSinceMonday)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + 7)
+
+    const [userStats, completedBooks, currentlyReading, weekSessions] =
+      await Promise.all([
       UserStats.findOne({ user: userId }).lean(),
 
       Book.countDocuments({
@@ -270,10 +282,30 @@ export const getStatistics = async (req, res) => {
         uploadedBy: userId,
         status: 'reading',
       }),
+
+      ReadingSession.find({
+        user: userId,
+        endTime: { $gte: weekStart, $lt: weekEnd },
+        duration: { $type: 'number' },
+      })
+        .select('duration endTime')
+        .lean(),
     ])
 
+    const dailyGoal = userStats?.dailyReadingGoal || 30
+    const weekMinutes = Array.from({ length: 7 }, () => 0)
+
+    ;(weekSessions || []).forEach((s) => {
+      if (!s?.endTime) return
+      const d = new Date(s.endTime)
+      const idx = (d.getUTCDay() + 6) % 7 // Mon=0..Sun=6
+      const minutes = Number(s.duration || 0)
+      if (!Number.isFinite(minutes) || minutes <= 0) return
+      weekMinutes[idx] += minutes
+    })
+
     res.status(200).json({
-      dailyGoal: userStats?.dailyReadingGoal || 30,
+      dailyGoal,
       todayReadingMinutes: userStats?.todayReadingMinutes || 0,
       totalHoursRead: Number(
         ((userStats?.totalMinutesRead || 0) / 60).toFixed(1),
@@ -282,6 +314,7 @@ export const getStatistics = async (req, res) => {
       bestStreak: userStats?.bestStreak || 0,
       completedBooks,
       currentlyReading,
+      weekMinutes,
     })
   } catch (error) {
     res.status(500).json({

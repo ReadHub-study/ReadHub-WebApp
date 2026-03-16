@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ReadHubImages } from '../../assets/asset';
 import { useNavigate } from 'react-router-dom';
 import ProfilePhotoSelector from '../../Components/ProfilePhotoSelector';
 import { apiEndpoints } from '../../Util/apiEndpoints';
 import axiosConfig from '../../Util/axiosConfig';
+import { useFiles } from '../../Context/FileContext';
 
 const Profile = () => {
     const [image, setImage] = useState(null);
@@ -11,6 +12,17 @@ const Profile = () => {
     const fileInputRef = useRef(null);
     const navigate = useNavigate();
     const [readingGoal, setReadingGoal] = useState(30);
+    const { files, highlights: highlightMap } = useFiles()
+
+    const totalBooks = Array.isArray(files) ? files.length : 0;
+
+    const totalHighlights = useMemo(() => {
+        const entries = Object.values(highlightMap || {})
+        return entries.reduce(
+          (sum, items) => sum + (Array.isArray(items) ? items.length : 0),
+          0,
+        )
+      }, [highlightMap])
 
     useEffect(() => {
         const fetchUserProfile = async () => {
@@ -176,7 +188,7 @@ const Profile = () => {
                             <img src={ReadHubImages.highlightIcon} alt="" className="w-8 h-8" />
                         </span>
                         <span className="font-semibold text-xl">0</span>
-                        <span className="font-light">Highlights</span>
+                        <span className="font-light">{totalHighlights}</span>
                     </div>
                 </div>
 

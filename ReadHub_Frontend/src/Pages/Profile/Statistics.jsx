@@ -8,7 +8,7 @@ import { useFiles } from '../../Context/FileContext'
 const Statistics = () => {
 
   const navigate = useNavigate()
-  const { files, highlights: highlightMap } = useFiles()
+  const { files, highlights: highlightMap, currentPage } = useFiles()
 
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -23,6 +23,30 @@ const Statistics = () => {
   }, [highlightMap])
 
   const totalBooks = Array.isArray(files) ? files.length : 0
+
+  // Match Library.jsx "completed/reading" logic so Statistics aligns with what user sees in Library.
+  const { completedFromLibrary, readingFromLibrary } = useMemo(() => {
+    const list = Array.isArray(files) ? files : []
+    let completedCount = 0
+    let readingCount = 0
+
+    list.forEach((b) => {
+      const id = b?._id
+      const pages = Number(b?.pages || 0)
+      if (!id || !Number.isFinite(pages) || pages <= 0) return
+
+      const page = Number(currentPage?.[id] ?? b?.lastPageRead ?? 0)
+      if (!Number.isFinite(page)) return
+
+      if (page >= pages) {
+        completedCount += 1
+      } else if (page > 0 && page < pages) {
+        readingCount += 1
+      }
+    })
+
+    return { completedFromLibrary: completedCount, readingFromLibrary: readingCount }
+  }, [files, currentPage])
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -48,8 +72,14 @@ const Statistics = () => {
   const totalHoursRead = stats?.totalHoursRead ?? 0
   const currentStreak = stats?.currentStreak ?? 0
   const bestStreak = stats?.bestStreak ?? 0
-  const completedBooks = stats?.completedBooks ?? 0
-  const currentlyReading = stats?.currentlyReading ?? 0
+  const completedBooks = completedFromLibrary
+  const currentlyReading = readingFromLibrary
+
+  const weekLabels = useMemo(() => ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'], [])
+  const weekMinutes = Array.isArray(stats?.weekMinutes) && stats.weekMinutes.length === 7
+    ? stats.weekMinutes
+    : Array.from({ length: 7 }, () => 0)
+  const weekMax = Math.max(dailyGoal, ...weekMinutes, 1)
 
   const todayProgressPct =
     dailyGoal > 0 ? Math.min(100, Math.round((todayReadingMinutes / dailyGoal) * 100)) : 0
@@ -125,35 +155,23 @@ const Statistics = () => {
                 <span><img src={ReadHubImages.calendarIcon} alt="" /></span>
                 <span className='text-xl font-medium'>This week</span>
             </div>
-            <div className='flex flex-row gap-1 w-full items-end justify-between'>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-8 bg-blue-300 rounded-t-3xl'><span></span></div>
-                    <span>Mon</span>
-                </div>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-16 bg-blue-500 rounded-t-3xl'><span></span></div>
-                    <span>Tue</span>
-                </div>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-20 bg-blue-500 rounded-t-3xl'><span></span></div>
-                    <span>Wed</span>
-                </div>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-10 bg-blue-300 rounded-t-3xl'><span></span></div>
-                    <span>Thur</span>
-                </div>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-22 bg-blue-300 rounded-t-3xl'><span></span></div>
-                    <span>Fri</span>
-                </div>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-14 bg-blue-500 rounded-t-3xl'><span></span></div>
-                    <span>Sat</span>
-                </div>
-                <div className='flex flex-col items-center justify-center gap-1'>
-                    <div className='px-5 py-16 bg-blue-500 rounded-t-3xl'><span></span></div>
-                    <span>Sun</span>
-                </div>
+            <div className='flex flex-row w-full items-end justify-between gap-2 h-32'>
+              {weekLabels.map((label, idx) => {
+                const minutes = Number(weekMinutes[idx] || 0)
+                const metGoal = minutes >= dailyGoal
+                const height = Math.max(10, Math.round((minutes / weekMax) * 110))
+
+                return (
+                  <div key={label} className='flex flex-col items-center justify-end gap-2 flex-1'>
+                    <div
+                      className={`${metGoal ? 'bg-blue-500' : 'bg-blue-300'} w-full max-w-[44px] rounded-t-3xl transition-all duration-300`}
+                      style={{ height: `${height}px` }}
+                      title={loading ? '' : `${minutes} min`}
+                    />
+                    <span className='text-sm text-gray-700'>{label}</span>
+                  </div>
+                )
+              })}
             </div>
             <div className='flex flex-row gap-4 items-center justify-center'>
                 <div className='flex flex-row gap-2 justify-center items-center'>
