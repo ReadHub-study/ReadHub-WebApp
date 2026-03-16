@@ -108,7 +108,7 @@ const Library = () => {
       reader.readAsDataURL(file);
     } catch (error) {
       console.error("Upload failed:", error);
-      alert(error?.message || "Failed to upload pdf file");
+      alert(error);
       setIsUploading(false);
     }
   };
