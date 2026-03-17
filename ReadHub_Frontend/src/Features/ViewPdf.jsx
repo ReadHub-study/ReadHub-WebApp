@@ -42,7 +42,7 @@ const ViewPdf = () => {
 
   const [toggleSettings, setToggleSettings] = useState(true);
 
-  const [scale, setScale] = useState(0.5);
+  const [scale, setScale] = useState(0.7);
   const [scaleFont, setScaleFont] = useState(16);
 
   // Track if we've initiated a fetch
@@ -316,11 +316,11 @@ const ViewPdf = () => {
   const [darkToggle, setDarkToggle] = useState(false);
 
   const zoomIn = () => {
-    setScale((prev) => Math.min(prev + 0.5, 3));
+    setScale((prev) => Math.min(Math.round((prev + 0.2) * 10) / 10, 3));
   };
 
   const zoomOut = () => {
-    setScale((prev) => Math.max(prev - 0.5, 0.5));
+    setScale((prev) => Math.max(Math.round((prev - 0.2) * 10) / 10, 0.7));
   };
 
   const increaseFont = () => {
@@ -333,11 +333,7 @@ const ViewPdf = () => {
 
   const handleHighlight = () => {
     // Validate text is not empty or whitespace-only
-    if (
-      !selectedText ||
-      selectedText.trim().length === 0 ||
-      !activeFileId
-    ) {
+    if (!selectedText || selectedText.trim().length === 0 || !activeFileId) {
       alert("Please select some text first");
       return;
     }
@@ -392,11 +388,7 @@ const ViewPdf = () => {
 
   const handleSaveNote = async () => {
     // Validate text is not empty or whitespace-only
-    if (
-      !selectedText ||
-      selectedText.trim().length === 0 ||
-      !activeFileId
-    ) {
+    if (!selectedText || selectedText.trim().length === 0 || !activeFileId) {
       alert("Please select some text first");
       return;
     }
@@ -507,7 +499,7 @@ const ViewPdf = () => {
   }
   return (
     <div
-      className={`w-full h-full bg-fixed overflow-scroll ${darkToggle ? "bg-[#0B111E] text-[#ECF0F8]" : "bg-white text-[black]"}`}
+      className={`w-full h-full bg-fixed overflow-hidden ${darkToggle ? "bg-[#0B111E] text-[#ECF0F8]" : "bg-white text-[black]"}`}
     >
       <div
         className={`flex justify-between p-4 w-full fixed z-10 items-center ${darkToggle ? "bg-[#0B111E] stroke-primary" : "bg-white stroke-[#1A1A1A]"}`}

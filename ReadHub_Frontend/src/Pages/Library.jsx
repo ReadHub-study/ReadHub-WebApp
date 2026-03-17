@@ -35,7 +35,7 @@ const Library = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
-  //Reafresh books on mount
+  //Refresh books on mount
   useEffect(() => {
     fetchBooks();
   }, [fetchBooks]);
