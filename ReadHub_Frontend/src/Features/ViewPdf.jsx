@@ -718,7 +718,7 @@ const ViewPdf = () => {
           </div>
         )}
 
-        <div className="flex gap-4 mb-4 pt-5 justify-center">
+        <div className="flex gap-4 mb-4 pt-5 justify-center h-20">
           <button
             onClick={() => setViewMode("pdf")}
             className={viewMode === "pdf" ? "text-primary" : ""}
