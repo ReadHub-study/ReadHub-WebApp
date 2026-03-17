@@ -99,7 +99,7 @@ const Library = () => {
       });
 
       setUploadProgress(100);
-
+      await fetchBooks();
       setTimeout(() => {
         setIsUploading(false);
         setUploadProgress(0);
