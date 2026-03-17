@@ -499,7 +499,7 @@ const ViewPdf = () => {
   }
   return (
     <div
-      className={`w-full h-full bg-fixed overflow-hidden ${darkToggle ? "bg-[#0B111E] text-[#ECF0F8]" : "bg-white text-[black]"}`}
+      className={`w-full h-dvh bg-fixed overflow-scroll ${darkToggle ? "bg-[#0B111E] text-[#ECF0F8]" : "bg-white text-[black]"}`}
     >
       <div
         className={`flex justify-between p-4 w-full fixed z-10 items-center ${darkToggle ? "bg-[#0B111E] stroke-primary" : "bg-white stroke-[#1A1A1A]"}`}
@@ -718,7 +718,7 @@ const ViewPdf = () => {
           </div>
         )}
 
-        <div className="flex gap-4 mb-4 pt-5 justify-center h-20">
+        <div className="flex gap-4 mb-4 pt-5 justify-center h-30">
           <button
             onClick={() => setViewMode("pdf")}
             className={viewMode === "pdf" ? "text-primary" : ""}
