@@ -631,7 +631,7 @@ const ViewPdf = () => {
           </div>
         </div>
       </div>
-      <div className="top-15 relative">
+      <div className="top-15 relative overflow-scroll">
         <div className="px-4 ">
           <h2 className="text-tittle_Medium font-medium text-[14px] leading-[20px] truncate">
             {activeFileTitle}
