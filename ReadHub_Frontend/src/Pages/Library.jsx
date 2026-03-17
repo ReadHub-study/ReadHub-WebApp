@@ -73,42 +73,40 @@ const Library = () => {
     try {
       setUploadProgress(10);
 
+      // ✅ Read file as ArrayBuffer (not base64)
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
 
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const fileDataUrl = e.target.result;
+      const pdf = await pdfjs.getDocument({
+        data: arrayBuffer,
+        disableAutoFetch: true,
+        disableStream: true,
+      }).promise;
 
-          const coverImage = await extractPdfCover(fileDataUrl);
+      // ✅ Extract cover from buffer (you'll adjust your function)
+      const coverImage = await extractPdfCover(pdf);
 
-          setUploadProgress(60);
+      await pdf.destroy();
+      setUploadProgress(60);
 
-          const uploadedBook = await uploadBook(file, {
-            title: file.name.replace(".pdf", ""),
-            author: "Unknown",
-            totalPages: pdf.numPages,
-            totalChapters: 0,
-            coverImage: coverImage,
-          });
-          setUploadProgress(100);
+      // give iOS a breather
+      await new Promise((r) => setTimeout(r, 0));
 
-          await fetchBooks();
+      const uploadedBook = await uploadBook(file, {
+        title: file.name.replace(".pdf", ""),
+        author: "Unknown",
+        totalPages: pdf.numPages,
+        coverImage: coverImage,
+      });
 
-          setTimeout(() => {
-            setIsUploading(false);
-            setUploadProgress(0);
-          }, 500);
-        } catch (error) {
-          alert("Failed to upload pdf file");
-          setIsUploading(false);
-        }
-      };
-      reader.readAsDataURL(file);
+      setUploadProgress(100);
+
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 500);
     } catch (error) {
-      console.error("Upload failed:", error);
-      alert(error);
+      console.error("PDF upload failed:", error);
+      alert("Failed to upload pdf file");
       setIsUploading(false);
     }
   };
@@ -280,13 +278,13 @@ const Library = () => {
         <p className="text-black text-tittle_Large">Library</p>
 
         <label
-          htmlFor="fileselect"
+          htmlFor="fileselect2"
           className="flex w-[40px] h-[40px] rounded-[8.04] bg-white justify-center items-center"
         >
           <input
             type="file"
             accept=".pdf,.epub"
-            id="fileselect"
+            id="fileselect2"
             onChange={handleFileSElect}
             className="hidden"
           />{" "}

@@ -78,13 +78,7 @@ export function FileProvider({ children }) {
       const fileURL = URL.createObjectURL(file);
       const fileType = file.name.endsWith(".epub") ? "epub" : "pdf";
 
-      let coverImage = null;
-      if (fileType === "epub") {
-        coverImage = await extractEpubCover(fileURL);
-      } else {
-        coverImage = await extractPdfCover(fileURL);
-      }
-
+      const coverImage = metadata.coverImage || null;
       //Upload book file to Cloudinary
 
       const bookUpload = await uploadToCloudinary(file, "books", "raw");
@@ -111,7 +105,8 @@ export function FileProvider({ children }) {
 
       return savedBook;
     } catch (error) {
-      throw (error, console.log(error));
+      console.error("UploadBook error:", error);
+      throw error;
     }
   }, []);
 
