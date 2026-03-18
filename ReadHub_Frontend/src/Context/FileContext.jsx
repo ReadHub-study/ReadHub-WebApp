@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { createContext, useState, useContext, useCallback } from "react";
 import { backendApi } from "../services/api";
 import { extractEpubCover, extractPdfCover } from "../Utils/coverExtractor";
@@ -27,6 +27,66 @@ export function FileProvider({ children }) {
     const saved = localStorage.getItem("appHighlights");
     return saved ? JSON.parse(saved) : {};
   });
+  const [readingGoal, setReadingGoalState] = useState(() => {
+    const saved = localStorage.getItem("readingGoal");
+    const parsed = saved ? Number(saved) : 30;
+    return Number.isFinite(parsed) ? parsed : 30;
+  });
+
+  const [activeReading, setActiveReading] = useState(() => {
+    try {
+      const saved = localStorage.getItem("activeReading");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [activeReadingTick, setActiveReadingTick] = useState(0);
+  const tickTimerRef = useRef(null);
+
+  const setReadingGoal = useCallback((value) => {
+    const num = Number(value);
+    const next = Number.isFinite(num) ? Math.round(num) : 30;
+    setReadingGoalState(next);
+    localStorage.setItem("readingGoal", String(next));
+  }, []);
+
+  const startLocalReadingTimer = useCallback((bookId) => {
+    if (!bookId) return;
+    const next = { bookId, startedAt: Date.now() };
+    setActiveReading(next);
+    localStorage.setItem("activeReading", JSON.stringify(next));
+  }, []);
+
+  const stopLocalReadingTimer = useCallback(() => {
+    setActiveReading(null);
+    localStorage.removeItem("activeReading");
+  }, []);
+
+  useEffect(() => {
+    if (!activeReading?.startedAt) {
+      if (tickTimerRef.current) clearInterval(tickTimerRef.current);
+      tickTimerRef.current = null;
+      return;
+    }
+
+    if (tickTimerRef.current) return;
+    tickTimerRef.current = setInterval(() => {
+      setActiveReadingTick((t) => t + 1);
+    }, 1000);
+
+    return () => {
+      if (tickTimerRef.current) clearInterval(tickTimerRef.current);
+      tickTimerRef.current = null;
+    };
+  }, [activeReading?.startedAt]);
+
+  const liveReadingMinutes = useMemo(() => {
+    if (!activeReading?.startedAt) return 0;
+    const elapsedMs = Date.now() - Number(activeReading.startedAt || 0);
+    if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) return 0;
+    return elapsedMs / 1000 / 60;
+  }, [activeReading?.startedAt, activeReadingTick]);
 
   const debouncedSave = useCallback(
     debounce(async (fileId, page) => {
@@ -261,6 +321,12 @@ export function FileProvider({ children }) {
         getHighlights,
         removeHighlight,
         highlights,
+        readingGoal,
+        setReadingGoal,
+        activeReading,
+        liveReadingMinutes,
+        startLocalReadingTimer,
+        stopLocalReadingTimer,
       }}
     >
       {children}

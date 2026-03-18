@@ -330,3 +330,32 @@ export const getStatistics = async (req, res) => {
     })
   }
 }
+
+export const updateDailyGoal = async (req, res) => {
+  try {
+    const userId = req.user.id
+    const dailyGoalRaw =
+      req.body?.dailyGoal ?? req.body?.dailyReadingGoal ?? req.body?.goal
+
+    const dailyGoal = Number(dailyGoalRaw)
+    if (!Number.isFinite(dailyGoal) || dailyGoal < 0 || dailyGoal > 24 * 60) {
+      return res.status(400).json({
+        message: 'dailyGoal must be a number between 0 and 1440',
+      })
+    }
+
+    const stats =
+      (await UserStats.findOne({ user: userId })) ||
+      (await UserStats.create({ user: userId }))
+
+    stats.dailyReadingGoal = Math.round(dailyGoal)
+    await stats.save()
+
+    return res.status(200).json({ dailyGoal: stats.dailyReadingGoal })
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Error updating daily goal',
+      error: error.message,
+    })
+  }
+}

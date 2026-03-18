@@ -8,6 +8,7 @@ import {
   startReading,
   endReading,
   getStatistics,
+  updateDailyGoal,
 } from '../controllers/book.controller.js'
 import { authenticate } from '../middlewares/auth.middleware.js'
 
@@ -261,6 +262,7 @@ router.post('/start', authenticate, startReading)
  *         description: Server error
  */
 router.post('/end', authenticate, endReading)
+router.patch('/goal', authenticate, updateDailyGoal)
 
 /**
  * @swagger

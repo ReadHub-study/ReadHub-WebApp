@@ -23,4 +23,5 @@ export const apiEndpoints = {
     BOOK_STATS: "book/stats",
     BOOK_START_READING: "book/start",
     BOOK_END_READING: "book/end",
+    BOOK_GOAL: "book/goal",
 };

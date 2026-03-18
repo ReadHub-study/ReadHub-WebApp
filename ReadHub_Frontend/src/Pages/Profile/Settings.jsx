@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 import axiosConfig from '../../Util/axiosConfig';
 import { apiEndpoints } from '../../Util/apiEndpoints';
+import { useFiles } from '../../Context/FileContext';
 
 const Settings = () => {
 
@@ -20,6 +21,8 @@ const Settings = () => {
         const saved = localStorage.getItem('readingGoal');
         return saved ? parseInt(saved) : 30;
     });
+    const { setReadingGoal: setReadingGoalGlobal } = useFiles();
+    const goalSaveTimerRef = React.useRef(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -39,8 +42,19 @@ const Settings = () => {
     }, []);
 
     const handleReadingGoalChange = (value) => {
-        setReadingGoal(value);
-        localStorage.setItem('readingGoal', value);
+        const next = Number(value);
+        setReadingGoal(next);
+        setReadingGoalGlobal(next);
+
+        // Debounce backend update while dragging the slider
+        if (goalSaveTimerRef.current) clearTimeout(goalSaveTimerRef.current);
+        goalSaveTimerRef.current = setTimeout(async () => {
+            try {
+                await axiosConfig.patch(apiEndpoints.BOOK_GOAL, { dailyGoal: next });
+            } catch (error) {
+                console.error('Error updating reading goal:', error);
+            }
+        }, 500);
     };
 
     const handleEditToggle = () => {

@@ -26,6 +26,8 @@ const ViewPdf = () => {
     getHighlights,
     highlights,
     fetchBooks,
+    startLocalReadingTimer,
+    stopLocalReadingTimer,
   } = useFiles();
 
   const activeFile = selectedFile2?.book ?? selectedFile2;
@@ -147,9 +149,11 @@ const ViewPdf = () => {
     };
 
     startSession();
+    startLocalReadingTimer(activeFileId);
 
     return () => {
       isActive = false;
+      stopLocalReadingTimer();
       const sessionId = sessionIdRef.current;
       const sessionBookId = sessionBookIdRef.current;
 

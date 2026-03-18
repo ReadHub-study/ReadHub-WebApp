@@ -11,8 +11,8 @@ const Profile = () => {
     const [user, setUser] = useState(null);
     const fileInputRef = useRef(null);
     const navigate = useNavigate();
-    const [readingGoal, setReadingGoal] = useState(30);
-    const { files, highlights: highlightMap, currentPage } = useFiles()
+    const { files, highlights: highlightMap, currentPage, readingGoal, liveReadingMinutes } = useFiles()
+    const [stats, setStats] = useState(null)
 
     // Match Library.jsx "completed/reading" logic so Statistics aligns with what user sees in Library.
       const { completedFromLibrary, readingFromLibrary } = useMemo(() => {
@@ -62,15 +62,25 @@ const Profile = () => {
             }
         };
         fetchUserProfile();
-
-
-           // Load reading goal from localStorage
-    const saved = localStorage.getItem('readingGoal');
-    if (saved) {
-      setReadingGoal(parseInt(saved));
-    }
-
     }, []);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await axiosConfig.get(apiEndpoints.BOOK_STATS)
+                setStats(response.data)
+            } catch (error) {
+                console.error('Error fetching book stats:', error)
+            }
+        }
+        fetchStats()
+    }, [])
+
+    const dailyGoal = stats?.dailyGoal ?? readingGoal ?? 30
+    const todayMinutes = (stats?.todayReadingMinutes ?? 0) + (liveReadingMinutes || 0)
+    const todayMinutesRounded = Math.max(0, Math.round(todayMinutes))
+    const todayProgressPct =
+        dailyGoal > 0 ? Math.min(100, Math.round((todayMinutes / dailyGoal) * 100)) : 0
 
     const handleLogout = () => {
         localStorage.clear();
@@ -239,11 +249,14 @@ const Profile = () => {
                                 <span className="text-white text-sm">Today's Progress</span>
                             </div>
                             <div>
-                                <span className="text-white text-sm">0/{readingGoal}min</span>
+                                <span className="text-white text-sm">{todayMinutesRounded}/{dailyGoal}min</span>
                             </div>
                         </div>
-                        <div className="card bg-white p-2 mt-5 rounded-lg">
-                            <span></span>
+                        <div className="w-full h-3 bg-blue-200 mt-5 rounded-lg overflow-hidden">
+                            <div
+                                className="h-full bg-blue-700 rounded-lg transition-all duration-300"
+                                style={{ width: `${todayProgressPct}%` }}
+                            />
                         </div>
                     </div>
                 </div>

@@ -17,10 +17,12 @@ const Home = () => {
     currentPage,
     fetchBooks,
     loading,
+    readingGoal,
+    liveReadingMinutes,
   } = useFiles();
   const [user, setUser] = useState(null);
   const [image, setImage] = useState(null);
-  const [readingGoal, setReadingGoal] = useState(30);
+  const [stats, setStats] = useState(null);
 
   // for fetching the user details so that it displays the username
   useEffect(() => {
@@ -34,17 +36,31 @@ const Home = () => {
             }
         };
         fetchUserProfile();
-
-      // Load reading goal from localStorage
-      const saved = localStorage.getItem("readingGoal");
-      if (saved) {
-        setReadingGoal(parseInt(saved));
-      }
   }, []);
 
   useEffect(() => {
     fetchBooks();
   }, [fetchBooks]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await axiosConfig.get(apiEndpoints.BOOK_STATS);
+        setStats(response.data);
+      } catch (error) {
+        console.error("Error fetching book stats:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const dailyGoal = stats?.dailyGoal ?? readingGoal ?? 30;
+  const todayMinutes = (stats?.todayReadingMinutes ?? 0) + (liveReadingMinutes || 0);
+  const todayMinutesRounded = Math.max(0, Math.round(todayMinutes));
+  const progressPct =
+    dailyGoal > 0 ? Math.min(100, Math.round((todayMinutes / dailyGoal) * 100)) : 0;
+  const remainingMinutes = Math.max(0, Math.ceil(dailyGoal - todayMinutes));
 
   const openPdf = (file) => {
     setSelectedFile(file);
@@ -110,14 +126,19 @@ const Home = () => {
           </div>
           <div className="flex flex-col">
             <span className="flex items-baseline-last">
-              <p className="text-display_Medium leading-10">0</p>
-              <p className="">/ {readingGoal} min</p>
+              <p className="text-display_Medium leading-10">{todayMinutesRounded}</p>
+              <p className="">/ {dailyGoal} min</p>
             </span>
-            <span className="w-full bg-[#cde1fe] h-[14px] flex rounded-full"></span>
+            <span className="w-full bg-[#cde1fe] h-[14px] flex rounded-full overflow-hidden">
+              <span
+                className="h-full bg-blue-700 rounded-full transition-all duration-300"
+                style={{ width: `${progressPct}%` }}
+              />
+            </span>
           </div>
           <div>
             <p className="font-medium">
-              {readingGoal} minutes to reach your goal
+              {remainingMinutes} minutes to reach your goal
             </p>
           </div>
         </div>
