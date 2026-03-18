@@ -13,6 +13,7 @@ const Statistics = () => {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [readingGoal, setReadingGoal] = useState(30);
 
   const totalHighlights = useMemo(() => {
     const entries = Object.values(highlightMap || {})
@@ -64,10 +65,16 @@ const Statistics = () => {
       }
     }
 
-    fetchStats()
+    fetchStats();
+
+       // Load reading goal from localStorage
+    const saved = localStorage.getItem('readingGoal');
+    if (saved) {
+      setReadingGoal(parseInt(saved));
+    }
   }, [])
 
-  const dailyGoal = stats?.dailyGoal ?? 30
+  const dailyGoal = stats?.dailyGoal ?? {readingGoal}
   const todayReadingMinutes = stats?.todayReadingMinutes ?? 0
   const totalHoursRead = stats?.totalHoursRead ?? 0
   const currentStreak = stats?.currentStreak ?? 0
@@ -137,7 +144,7 @@ const Statistics = () => {
                 <div><span><img src={ReadHubImages.ForwardArrow} alt="" /></span></div>
             </div>
             <div className='flex flex-col gap-1 w-full justify-start items-start'>
-                <div className='flex flex-row justify-between items-center gap-46'>
+                <div className='flex flex-row justify-between items-center gap-46 w-full'>
                     <div><span className='text-white text-sm'>Today's Progress</span></div>
                     <div><span className='text-white text-sm'>{loading ? '.../...' : `${todayReadingMinutes}/${dailyGoal}min`}</span></div>
                 </div>
