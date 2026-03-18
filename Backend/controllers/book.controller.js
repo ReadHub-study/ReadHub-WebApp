@@ -163,9 +163,11 @@ export const startReading = async (req, res) => {
   try {
     const { bookId, startPage } = req.body
 
+    // Reuse only an "open" session; otherwise create a new one (keeps history for stats/graphs).
     let readingBook = await ReadingSession.findOne({
       book: bookId,
       user: req.user.id,
+      $or: [{ endTime: { $exists: false } }, { endTime: null }],
     })
 
     if (!readingBook) {
@@ -200,6 +202,11 @@ export const endReading = async (req, res) => {
 
     if (!session) {
       return res.status(404).json({ message: 'Session not found' })
+    }
+
+    // Prevent double-ending the same session (would double-count minutes).
+    if (session.endTime) {
+      return res.json(session)
     }
 
     session.endTime = new Date()

@@ -21,4 +21,6 @@ export const apiEndpoints = {
     NOTES_BY_ID: "notes/:id",
     USER_STATS: "stats",
     BOOK_STATS: "book/stats",
+    BOOK_START_READING: "book/start",
+    BOOK_END_READING: "book/end",
 };

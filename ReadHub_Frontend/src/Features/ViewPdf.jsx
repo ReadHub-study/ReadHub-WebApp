@@ -118,6 +118,56 @@ const ViewPdf = () => {
   const savedPage = activeFile?.lastPageRead || 1;
   const pageNumber = currentPage[fileId] || savedPage;
 
+  // Reading time tracking (start when a book is open, end when leaving ViewPdf)
+  const sessionIdRef = useRef(null);
+  const sessionBookIdRef = useRef(null);
+  const latestPageRef = useRef(pageNumber);
+
+  useEffect(() => {
+    latestPageRef.current = pageNumber;
+  }, [pageNumber]);
+
+  useEffect(() => {
+    if (!activeFileId) return;
+
+    let isActive = true;
+
+    const startSession = async () => {
+      try {
+        const payload = { bookId: activeFileId, startPage: latestPageRef.current };
+        const res = await axiosConfig.post(apiEndpoints.BOOK_START_READING, payload);
+        const sessionId = res?.data?.session?._id || null;
+        if (!isActive) return;
+        sessionIdRef.current = sessionId;
+        sessionBookIdRef.current = activeFileId;
+      } catch (err) {
+        // Fail silently; stats will just not include this session.
+        console.warn("Failed to start reading session:", err?.message || err);
+      }
+    };
+
+    startSession();
+
+    return () => {
+      isActive = false;
+      const sessionId = sessionIdRef.current;
+      const sessionBookId = sessionBookIdRef.current;
+
+      sessionIdRef.current = null;
+      sessionBookIdRef.current = null;
+
+      if (!sessionId) return;
+      if (sessionBookId && sessionBookId !== activeFileId) return;
+
+      const endPayload = { sessionId, endPage: latestPageRef.current };
+      axiosConfig
+        .post(apiEndpoints.BOOK_END_READING, endPayload)
+        .catch((e) =>
+          console.warn("Failed to end reading session:", e?.message || e),
+        );
+    };
+  }, [activeFileId]);
+
   // Apply highlights to PDF text layer after rendering
   useEffect(() => {
     if (viewMode === "pdf" && activeFileId) {
