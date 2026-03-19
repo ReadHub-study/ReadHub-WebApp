@@ -90,6 +90,16 @@ const Statistics = () => {
   const readingPct =
     totalBooks > 0 ? Math.min(100, Math.round((currentlyReading / totalBooks) * 100)) : 0
 
+  // Guard against any temporary backend/client mismatch where bestStreak hasn't caught up yet.
+  const safeBestStreak = Math.max(bestStreak, currentStreak)
+  const streakPct =
+    safeBestStreak > 0
+      ? Math.min(100, Math.round((currentStreak / safeBestStreak) * 100))
+      : 0
+  // Ensure tiny streak percentages are still visible.
+  const streakBarPct =
+    !loading && currentStreak > 0 && streakPct === 0 ? 2 : streakPct
+
   return (
     <>
     <div  className='p-5 bg-gray-100 min-h-screen'>
@@ -211,12 +221,12 @@ const Statistics = () => {
             <div className='flex flex-col gap-3 justify-start items-start w-full'>
                 <div className='flex flex-row w-full justify-between items-center'>
                     <span className='text-gray-600'>Best Streak</span>
-                    <span className='text-gray-600'>{loading ? '...' : `${bestStreak} days`}</span>
+                    <span className='text-gray-600'>{loading ? '...' : `${safeBestStreak} days`}</span>
                 </div>
                 <div className='h-3 rounded-xl bg-gray-200 w-full overflow-hidden'>
                   <div
-                    className='h-full bg-gray-400 rounded-xl'
-                    style={{ width: `${bestStreak > 0 ? 100 : 0}%` }}
+                    className='h-full bg-blue-500 rounded-xl transition-all duration-300'
+                    style={{ width: `${loading ? 0 : streakBarPct}%` }}
                   />
                 </div>
             </div>
