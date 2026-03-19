@@ -210,14 +210,14 @@ const Profile = () => {
                         <span>
                             <img src={ReadHubImages.timeIcon} alt="" className="w-6 h-6" />
                         </span>
-                        <span className="font-semibold text-xl">0h</span>
+                        <span className="font-semibold text-xl">{stats?.totalHoursRead ?? 0}h</span>
                         <span className="font-light">Total Hours</span>
                     </div>
                     <div className="flex flex-col gap-3 bg-white p-5 rounded-lg">
                         <span>
                             <img src={ReadHubImages.fireIcon} alt="" className="w-6 h-8" />
                         </span>
-                        <span className="font-semibold text-xl">0</span>
+                        <span className="font-semibold text-xl">{stats?.currentStreak ?? 0}</span>
                         <span className="font-light">Day Streak</span>
                     </div>
                     <div className="flex flex-col gap-3 bg-white p-5 rounded-lg">

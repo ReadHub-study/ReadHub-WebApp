@@ -183,6 +183,43 @@ export const startReading = async (req, res) => {
       await readingBook.save()
     }
 
+    // Update streak on "start reading" (counts as reading for the day)
+    const now = new Date()
+    const todayStart = new Date(now)
+    todayStart.setHours(0, 0, 0, 0)
+    const todayStartTime = todayStart.getTime()
+
+    let stats = await UserStats.findOne({ user: req.user.id })
+    if (!stats) {
+      stats = await UserStats.create({ user: req.user.id })
+    }
+
+    const lastStartTime = stats.lastReadingDate
+      ? new Date(stats.lastReadingDate).setHours(0, 0, 0, 0)
+      : null
+
+    if (lastStartTime !== todayStartTime) {
+      // New day: reset today's minutes counter
+      stats.todayReadingMinutes = 0
+
+      const yesterdayStart = new Date(todayStart)
+      yesterdayStart.setDate(yesterdayStart.getDate() - 1)
+      const yesterdayStartTime = yesterdayStart.getTime()
+
+      if (lastStartTime === yesterdayStartTime) {
+        stats.currentStreak = (stats.currentStreak || 0) + 1
+      } else {
+        stats.currentStreak = 1
+      }
+
+      if (stats.currentStreak > (stats.bestStreak || 0)) {
+        stats.bestStreak = stats.currentStreak
+      }
+    }
+
+    stats.lastReadingDate = now
+    await stats.save()
+
     return res.status(201).json({
       message: 'Session recorded',
       session: readingBook,
@@ -230,27 +267,35 @@ export const endReading = async (req, res) => {
 
     stats.totalMinutesRead += session.duration
 
-    const lastDate = stats.lastReadingDate
+    const now = new Date()
+    const todayStart = new Date(now)
+    todayStart.setHours(0, 0, 0, 0)
+    const todayStartTime = todayStart.getTime()
+
+    const lastStartTime = stats.lastReadingDate
       ? new Date(stats.lastReadingDate).setHours(0, 0, 0, 0)
       : null
 
-    const todayDate = new Date().setHours(0, 0, 0, 0)
+    if (lastStartTime !== todayStartTime) {
+      stats.todayReadingMinutes = 0
 
-    if (lastDate === todayDate) {
-      stats.todayReadingMinutes += session.duration
-    } else {
-      stats.todayReadingMinutes = session.duration
-    }
+      const yesterdayStart = new Date(todayStart)
+      yesterdayStart.setDate(yesterdayStart.getDate() - 1)
+      const yesterdayStartTime = yesterdayStart.getTime()
 
-    stats.lastReadingDate = new Date()
+      if (lastStartTime === yesterdayStartTime) {
+        stats.currentStreak = (stats.currentStreak || 0) + 1
+      } else {
+        stats.currentStreak = 1
+      }
 
-    if (stats.todayReadingMinutes >= stats.dailyReadingGoal) {
-      stats.currentStreak += 1
-
-      if (stats.currentStreak > stats.bestStreak) {
+      if (stats.currentStreak > (stats.bestStreak || 0)) {
         stats.bestStreak = stats.currentStreak
       }
     }
+
+    stats.todayReadingMinutes += session.duration
+    stats.lastReadingDate = now
 
     await stats.save()
 

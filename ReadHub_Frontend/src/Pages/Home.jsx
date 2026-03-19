@@ -106,7 +106,7 @@ const Home = () => {
         </div>
         <div>
           <div className="w-fit h-[36px] bg-[#ff5800]/40 border-1 border-[#ff5b04] text-[#ff5b04] font-medium rounded-full flex justify-center items-center px-3 sm:px-[24px] max-xsm:text-[13px] max-xsm:px-1">
-            <p className="truncate">7 day Reading streak </p>
+            <p className="truncate">{stats?.currentStreak ?? 0} day Reading streak </p>
             <img
               src="/fire.svg"
               alt="fire"
