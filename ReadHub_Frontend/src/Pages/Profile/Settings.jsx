@@ -1,8 +1,7 @@
 import React from 'react'
 import { ReadHubImages } from '../../assets/asset'
 import { useNavigate } from 'react-router-dom'
-import { useState } from 'react';
-import { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import axiosConfig from '../../Util/axiosConfig';
 import { apiEndpoints } from '../../Util/apiEndpoints';
 import { useFiles } from '../../Context/FileContext';
@@ -22,7 +21,8 @@ const Settings = () => {
         return saved ? parseInt(saved) : 30;
     });
     const { setReadingGoal: setReadingGoalGlobal } = useFiles();
-    const goalSaveTimerRef = React.useRef(null);
+    const goalSaveTimerRef = useRef(null);
+    const [goalLockedToday, setGoalLockedToday] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -41,7 +41,28 @@ const Settings = () => {
         fetchUserProfile();
     }, []);
 
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const { data } = await axiosConfig.get(apiEndpoints.BOOK_STATS);
+                setGoalLockedToday(Boolean(data?.goalLockedToday));
+
+                // Keep local/global goal in sync with backend whenever we can.
+                if (Number.isFinite(Number(data?.dailyGoal))) {
+                    const next = Math.round(Number(data.dailyGoal));
+                    setReadingGoal(next);
+                    setReadingGoalGlobal(next);
+                }
+            } catch (error) {
+                console.error('Error fetching reading stats:', error);
+            }
+        };
+
+        fetchStats();
+    }, [setReadingGoalGlobal]);
+
     const handleReadingGoalChange = (value) => {
+        if (goalLockedToday) return;
         const next = Number(value);
         setReadingGoal(next);
         setReadingGoalGlobal(next);
@@ -52,6 +73,22 @@ const Settings = () => {
             try {
                 await axiosConfig.patch(apiEndpoints.BOOK_GOAL, { dailyGoal: next });
             } catch (error) {
+                const status = error?.response?.status;
+                if (status === 403) {
+                    setGoalLockedToday(true);
+                    setMessage({ type: 'error', text: 'Reading goal is locked until tomorrow.' });
+                    try {
+                        const { data } = await axiosConfig.get(apiEndpoints.BOOK_STATS);
+                        if (Number.isFinite(Number(data?.dailyGoal))) {
+                            const lockedGoal = Math.round(Number(data.dailyGoal));
+                            setReadingGoal(lockedGoal);
+                            setReadingGoalGlobal(lockedGoal);
+                        }
+                    } catch (e) {
+                        console.error('Error refreshing stats after goal lock:', e);
+                    }
+                    return;
+                }
                 console.error('Error updating reading goal:', error);
             }
         }, 500);
@@ -186,23 +223,29 @@ const Settings = () => {
                 <span className='text-2xl font-semibold'>Reading Goals</span>
             </div>
 
-            <div className='flex flex-col gap-3 justify-start items-start w-full'>
-                <div className='flex flex-row w-full justify-between'>
-                    <span className='text-gray-800 text-sm font-normal'>Daily Reading Goals</span>
-                    <span className='text-gray-800 text-sm font-normal'>{readingGoal}mins</span>
-                </div>
-                <div className='slider w-full'>
-                    <input 
-                        type="range" 
-                        min="0" 
-                        max="30" 
-                        value={readingGoal}
-                        onChange={(e) => handleReadingGoalChange(parseInt(e.target.value))}
-                        className='w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500'
-                    />
-                </div>
-            </div>
-        </div>
+             <div className='flex flex-col gap-3 justify-start items-start w-full'>
+                 <div className='flex flex-row w-full justify-between'>
+                     <span className='text-gray-800 text-sm font-normal'>Daily Reading Goals</span>
+                     <span className='text-gray-800 text-sm font-normal'>{readingGoal}mins</span>
+                 </div>
+                 <div className='slider w-full'>
+                     <input 
+                         type="range" 
+                         min="0" 
+                         max="30" 
+                         value={readingGoal}
+                         onChange={(e) => handleReadingGoalChange(parseInt(e.target.value))}
+                         disabled={goalLockedToday}
+                         className={`w-full h-2 bg-gray-200 rounded-lg appearance-none accent-blue-500 ${goalLockedToday ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                     />
+                 </div>
+                 {goalLockedToday && (
+                   <span className='text-xs text-gray-600'>
+                     Reading goal is locked until tomorrow.
+                   </span>
+                 )}
+             </div>
+         </div>
 
 
 

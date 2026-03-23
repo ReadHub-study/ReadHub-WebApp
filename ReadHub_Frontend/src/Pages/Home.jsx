@@ -58,6 +58,7 @@ const Home = () => {
   const dailyGoal = stats?.dailyGoal ?? readingGoal ?? 30;
   const todayMinutes = (stats?.todayReadingMinutes ?? 0) + (liveReadingMinutes || 0);
   const todayMinutesRounded = Math.max(0, Math.round(todayMinutes));
+  const todayMinutesDisplay = Math.min(dailyGoal, todayMinutesRounded);
   const progressPct =
     dailyGoal > 0 ? Math.min(100, Math.round((todayMinutes / dailyGoal) * 100)) : 0;
   const remainingMinutes = Math.max(0, Math.ceil(dailyGoal - todayMinutes));
@@ -126,7 +127,7 @@ const Home = () => {
           </div>
           <div className="flex flex-col">
             <span className="flex items-baseline-last">
-              <p className="text-display_Medium leading-10">{todayMinutesRounded}</p>
+              <p className="text-display_Medium leading-10">{todayMinutesDisplay}</p>
               <p className="">/ {dailyGoal} min</p>
             </span>
             <span className="w-full bg-[#cde1fe] h-[14px] flex rounded-full overflow-hidden">

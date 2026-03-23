@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { createContext, useState, useContext, useCallback } from "react";
+import {
+  createContext,
+  useState,
+  useContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { backendApi } from "../services/api";
 import { extractEpubCover, extractPdfCover } from "../Utils/coverExtractor";
 import {
@@ -35,13 +43,13 @@ export function FileProvider({ children }) {
 
   const [activeReading, setActiveReading] = useState(() => {
     try {
-      const saved = localStorage.getItem("activeReading");
+      // sessionStorage prevents "offline time" being counted after tab/app is closed.
+      const saved = sessionStorage.getItem("activeReading");
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
     }
   });
-  const [activeReadingTick, setActiveReadingTick] = useState(0);
   const tickTimerRef = useRef(null);
 
   const setReadingGoal = useCallback((value) => {
@@ -53,40 +61,129 @@ export function FileProvider({ children }) {
 
   const startLocalReadingTimer = useCallback((bookId) => {
     if (!bookId) return;
-    const next = { bookId, startedAt: Date.now() };
+    const now = Date.now();
+    const next = {
+      bookId,
+      startedAt: now,
+      accumulatedMs: 0,
+      lastTickAt: now,
+      paused: typeof document !== "undefined" ? document.hidden : false,
+    };
     setActiveReading(next);
-    localStorage.setItem("activeReading", JSON.stringify(next));
+    try {
+      sessionStorage.setItem("activeReading", JSON.stringify(next));
+    } catch {}
   }, []);
 
   const stopLocalReadingTimer = useCallback(() => {
     setActiveReading(null);
-    localStorage.removeItem("activeReading");
+    try {
+      sessionStorage.removeItem("activeReading");
+    } catch {}
   }, []);
 
+  // Normalize any restored timer state so we never count "offline time" between app/tab closes.
   useEffect(() => {
-    if (!activeReading?.startedAt) {
+    setActiveReading((prev) => {
+      if (!prev?.startedAt) return prev;
+      const now = Date.now();
+      return {
+        ...prev,
+        lastTickAt: now,
+        paused: typeof document !== "undefined" ? document.hidden : false,
+      };
+    });
+    // Run once on mount only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist timer state only for the current tab/session.
+  useEffect(() => {
+    try {
+      if (!activeReading) sessionStorage.removeItem("activeReading");
+      else sessionStorage.setItem("activeReading", JSON.stringify(activeReading));
+    } catch {}
+  }, [activeReading]);
+
+  // Pause/resume based on tab visibility to prevent background counting.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      const hidden = typeof document !== "undefined" ? document.hidden : false;
+      setActiveReading((prev) => {
+        if (!prev?.startedAt) return prev;
+        const now = Date.now();
+        return { ...prev, paused: hidden, lastTickAt: now };
+      });
+    };
+
+    const onPageHide = () => {
+      setActiveReading((prev) => {
+        if (!prev?.startedAt) return prev;
+        const now = Date.now();
+        return { ...prev, paused: true, lastTickAt: now };
+      });
+    };
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibilityChange);
+    }
+    window.addEventListener("pagehide", onPageHide);
+
+    return () => {
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+      }
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, []);
+
+  // Tick only while visible + unpaused; increment using small deltas to avoid huge jumps.
+  useEffect(() => {
+    const shouldRun =
+      Boolean(activeReading?.startedAt) &&
+      !activeReading?.paused &&
+      (typeof document === "undefined" || !document.hidden);
+
+    if (!shouldRun) {
       if (tickTimerRef.current) clearInterval(tickTimerRef.current);
       tickTimerRef.current = null;
       return;
     }
 
     if (tickTimerRef.current) return;
+
     tickTimerRef.current = setInterval(() => {
-      setActiveReadingTick((t) => t + 1);
+      setActiveReading((prev) => {
+        if (!prev?.startedAt || prev.paused) return prev;
+
+        const now = Date.now();
+        const last = Number(prev.lastTickAt || now);
+        const delta = now - last;
+        if (!Number.isFinite(delta) || delta <= 0) {
+          return { ...prev, lastTickAt: now };
+        }
+
+        // Clamp per-tick increment so background/throttled timers can't "catch up" with a huge delta.
+        const clampedDelta = Math.min(delta, 1100);
+        return {
+          ...prev,
+          accumulatedMs: Number(prev.accumulatedMs || 0) + clampedDelta,
+          lastTickAt: now,
+        };
+      });
     }, 1000);
 
     return () => {
       if (tickTimerRef.current) clearInterval(tickTimerRef.current);
       tickTimerRef.current = null;
     };
-  }, [activeReading?.startedAt]);
+  }, [activeReading?.startedAt, activeReading?.paused]);
 
   const liveReadingMinutes = useMemo(() => {
-    if (!activeReading?.startedAt) return 0;
-    const elapsedMs = Date.now() - Number(activeReading.startedAt || 0);
-    if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) return 0;
-    return elapsedMs / 1000 / 60;
-  }, [activeReading?.startedAt, activeReadingTick]);
+    const ms = Number(activeReading?.accumulatedMs || 0);
+    if (!Number.isFinite(ms) || ms <= 0) return 0;
+    return ms / 1000 / 60;
+  }, [activeReading?.accumulatedMs]);
 
   const debouncedSave = useCallback(
     debounce(async (fileId, page) => {

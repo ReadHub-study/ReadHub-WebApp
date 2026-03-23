@@ -310,6 +310,10 @@ export const getStatistics = async (req, res) => {
   try {
     const userId = req.user.id
 
+    const localTodayStart = new Date()
+    localTodayStart.setHours(0, 0, 0, 0)
+    const localTodayStartTime = localTodayStart.getTime()
+
     const now = new Date()
     const utcMidnight = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
@@ -347,6 +351,11 @@ export const getStatistics = async (req, res) => {
     const dailyGoal = userStats?.dailyReadingGoal || 30
     const weekMinutes = Array.from({ length: 7 }, () => 0)
 
+    const lastReadingStartTime = userStats?.lastReadingDate
+      ? new Date(userStats.lastReadingDate).setHours(0, 0, 0, 0)
+      : null
+    const goalLockedToday = lastReadingStartTime === localTodayStartTime
+
     ;(weekSessions || []).forEach((s) => {
       if (!s?.endTime) return
       const d = new Date(s.endTime)
@@ -358,6 +367,7 @@ export const getStatistics = async (req, res) => {
 
     res.status(200).json({
       dailyGoal,
+      goalLockedToday,
       todayReadingMinutes: userStats?.todayReadingMinutes || 0,
       totalHoursRead: Number(
         ((userStats?.totalMinutesRead || 0) / 60).toFixed(1),
@@ -392,6 +402,20 @@ export const updateDailyGoal = async (req, res) => {
     const stats =
       (await UserStats.findOne({ user: userId })) ||
       (await UserStats.create({ user: userId }))
+
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const todayStartTime = todayStart.getTime()
+    const lastStartTime = stats.lastReadingDate
+      ? new Date(stats.lastReadingDate).setHours(0, 0, 0, 0)
+      : null
+
+    // Once a user has started reading for the day, lock the reading goal until the next day.
+    if (lastStartTime === todayStartTime) {
+      return res.status(403).json({
+        message: 'Daily reading goal is locked until tomorrow',
+      })
+    }
 
     stats.dailyReadingGoal = Math.round(dailyGoal)
     await stats.save()
