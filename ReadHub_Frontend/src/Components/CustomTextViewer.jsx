@@ -102,7 +102,7 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
   );
 
   // Swipe-------------------------------------//
-  const swipeHandlers = useSwipeable({
+  const swipeHandlerText = useSwipeable({
     onSwipedLeft: (eventData) => {
       if (
         scrollDirection === "horizontal" &&
@@ -116,7 +116,7 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
         scrollDirection === "horizontal" &&
         Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)
       ) {
-        goToPrevPage();
+        goToPreviousPage();
       }
     },
     onSwipedUp: (eventData) => {
@@ -132,13 +132,13 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
         scrollDirection === "vertical" &&
         Math.abs(eventData.deltaY) > Math.abs(eventData.deltaX)
       ) {
-        goToPrevPage();
+        goToPreviousPage();
       }
     },
 
-    preventScrollOnSwipe: scrollDirection === "vertical",
+    preventScrollOnSwipe: true,
     trackMouse: true,
-    delta: 80,
+    delta: 1700,
   });
 
   /* ---------------- UI States ---------------- */
@@ -210,7 +210,6 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto px-4">
         <div
-          {...swipeHandlers}
           onMouseUpCapture={handleTextSelectionWithFallback}
           onTouchEndCapture={handleTextSelectionWithFallback}
         >

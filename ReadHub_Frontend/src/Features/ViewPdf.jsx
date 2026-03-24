@@ -399,7 +399,7 @@ const ViewPdf = () => {
 
     preventScrollOnSwipe: true,
     trackMouse: true,
-    delta: 30,
+    delta: viewMode === "pdf" && scrollDirection === "vertical" ? 30 : 90,
   });
 
   /*------Dark toggle, Zoom and font Increase----*/
@@ -734,11 +734,7 @@ const ViewPdf = () => {
             Page {pageNumber} of {numPages}
           </h2>
         </div>
-        <div
-          {...swipeHandlers}
-          style={{ overscrollBehavior: "none" }}
-          className="overscroll-none"
-        >
+        <div style={{ overscrollBehavior: "none" }} className="overscroll-none">
           {/* Toggle between PDF and Text view */}
 
           {viewMode === "pdf" ? (
@@ -746,6 +742,7 @@ const ViewPdf = () => {
               className="flex justify-center items-center h-full"
               onMouseUpCapture={handleTextSelection}
               onTouchEndCapture={handleTextSelection}
+              {...swipeHandlers}
             >
               <Document
                 file={activeFile?.fileUrl}
