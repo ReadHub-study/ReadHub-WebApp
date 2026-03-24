@@ -399,7 +399,7 @@ const ViewPdf = () => {
 
     preventScrollOnSwipe: true,
     trackMouse: true,
-    delta: viewMode === 140,
+    delta: 140,
   });
 
   /*------Dark toggle, Zoom and font Increase----*/
@@ -734,7 +734,7 @@ const ViewPdf = () => {
             Page {pageNumber} of {numPages}
           </h2>
         </div>
-        <div style={{ overscrollBehavior: "none" }} className="overscroll-none">
+        <div>
           {/* Toggle between PDF and Text view */}
 
           {viewMode === "pdf" ? (
