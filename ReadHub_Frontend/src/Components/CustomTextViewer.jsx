@@ -102,44 +102,6 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
   );
 
   // Swipe-------------------------------------//
-  const swipeHandlerText = useSwipeable({
-    onSwipedLeft: (eventData) => {
-      if (
-        scrollDirection === "horizontal" &&
-        Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)
-      ) {
-        goToNextPage();
-      }
-    },
-    onSwipedRight: (eventData) => {
-      if (
-        scrollDirection === "horizontal" &&
-        Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)
-      ) {
-        goToPreviousPage();
-      }
-    },
-    onSwipedUp: (eventData) => {
-      if (
-        scrollDirection === "vertical" &&
-        Math.abs(eventData.deltaY) > Math.abs(eventData.deltaX)
-      ) {
-        goToNextPage();
-      }
-    },
-    onSwipedDown: (eventData) => {
-      if (
-        scrollDirection === "vertical" &&
-        Math.abs(eventData.deltaY) > Math.abs(eventData.deltaX)
-      ) {
-        goToPreviousPage();
-      }
-    },
-
-    preventScrollOnSwipe: true,
-    trackMouse: true,
-    delta: 1700,
-  });
 
   /* ---------------- UI States ---------------- */
   // Track highlights to ensure re-render when they change

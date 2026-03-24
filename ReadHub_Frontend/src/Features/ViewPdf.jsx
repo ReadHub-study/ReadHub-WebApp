@@ -593,7 +593,7 @@ const ViewPdf = () => {
   }
   return (
     <div
-      className={`w-full h-dvh bg-fixed overflow-scroll ${darkToggle ? "bg-[#0B111E] text-[#ECF0F8]" : "bg-white text-[black]"}`}
+      className={`w-full overscroll-contain h-dvh bg-fixed overflow-scroll ${darkToggle ? "bg-[#0B111E] text-[#ECF0F8]" : "bg-white text-[black]"}`}
     >
       <div
         className={`flex justify-between p-4 w-full fixed z-10 items-center ${darkToggle ? "bg-[#0B111E] stroke-primary" : "bg-white stroke-[#1A1A1A]"}`}
