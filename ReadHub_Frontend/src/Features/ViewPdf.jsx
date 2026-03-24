@@ -399,7 +399,7 @@ const ViewPdf = () => {
 
     preventScrollOnSwipe: true,
     trackMouse: true,
-    delta: viewMode === "pdf" && scrollDirection === "vertical" ? 30 : 120,
+    delta: viewMode === 140,
   });
 
   /*------Dark toggle, Zoom and font Increase----*/
