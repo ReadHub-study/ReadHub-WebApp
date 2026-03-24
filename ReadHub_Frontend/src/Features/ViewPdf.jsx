@@ -397,7 +397,7 @@ const ViewPdf = () => {
       }
     },
 
-    preventScrollOnSwipe: scrollDirection === "vertical",
+    preventScrollOnSwipe: true,
     trackMouse: true,
     delta: 80,
   });
