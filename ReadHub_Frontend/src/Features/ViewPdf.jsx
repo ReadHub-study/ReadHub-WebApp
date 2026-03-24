@@ -734,7 +734,7 @@ const ViewPdf = () => {
             Page {pageNumber} of {numPages}
           </h2>
         </div>
-        <div {...swipeHandlers}>
+        <div {...swipeHandlers} className="overscroll-none">
           {/* Toggle between PDF and Text view */}
 
           {viewMode === "pdf" ? (
