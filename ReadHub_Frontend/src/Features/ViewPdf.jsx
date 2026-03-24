@@ -361,6 +361,7 @@ const ViewPdf = () => {
     updateCurrentPage(fileId, page);
     setToggleSettings(!toggleSettings);
   };
+
   // Swipe-------------------------------------//
   const swipeHandlers = useSwipeable({
     onSwipedLeft: (eventData) => {
@@ -398,7 +399,7 @@ const ViewPdf = () => {
 
     preventScrollOnSwipe: scrollDirection === "vertical",
     trackMouse: true,
-    delta: 140,
+    delta: 80,
   });
 
   /*------Dark toggle, Zoom and font Increase----*/

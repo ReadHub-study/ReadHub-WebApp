@@ -97,20 +97,48 @@ const CustomTextViewer = ({ fileData, file, theme, scale, onTextSelect }) => {
     }
   };
 
+  const [scrollDirection, setScrollDirection] = useState(
+    () => localStorage.getItem("pdfScrollDirection") || "horizontal",
+  );
+
+  // Swipe-------------------------------------//
   const swipeHandlers = useSwipeable({
     onSwipedLeft: (eventData) => {
-      if (Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)) {
+      if (
+        scrollDirection === "horizontal" &&
+        Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)
+      ) {
         goToNextPage();
       }
     },
     onSwipedRight: (eventData) => {
-      if (Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)) {
-        goToPreviousPage();
+      if (
+        scrollDirection === "horizontal" &&
+        Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)
+      ) {
+        goToPrevPage();
       }
     },
-    preventScrollOnSwipe: false,
+    onSwipedUp: (eventData) => {
+      if (
+        scrollDirection === "vertical" &&
+        Math.abs(eventData.deltaY) > Math.abs(eventData.deltaX)
+      ) {
+        goToNextPage();
+      }
+    },
+    onSwipedDown: (eventData) => {
+      if (
+        scrollDirection === "vertical" &&
+        Math.abs(eventData.deltaY) > Math.abs(eventData.deltaX)
+      ) {
+        goToPrevPage();
+      }
+    },
+
+    preventScrollOnSwipe: scrollDirection === "vertical",
     trackMouse: true,
-    delta: 70,
+    delta: 80,
   });
 
   /* ---------------- UI States ---------------- */
