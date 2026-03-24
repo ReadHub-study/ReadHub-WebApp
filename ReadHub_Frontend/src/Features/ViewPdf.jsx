@@ -399,7 +399,7 @@ const ViewPdf = () => {
 
     preventScrollOnSwipe: true,
     trackMouse: true,
-    delta: 50,
+    delta: 30,
   });
 
   /*------Dark toggle, Zoom and font Increase----*/
