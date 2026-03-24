@@ -62,6 +62,12 @@ const ViewPdf = () => {
   const popupRef = useRef(null);
   const textModeContainerRef = useRef(null);
 
+  // Scroll Configuration
+
+  const [scrollDirection, setScrollDirection] = useState(
+    () => localStorage.getItem("pdfScrollDirection") || "horizontal",
+  );
+
   const getSelectionOffsetsWithin = (containerEl) => {
     try {
       if (!containerEl) return null;
@@ -136,8 +142,14 @@ const ViewPdf = () => {
 
     const startSession = async () => {
       try {
-        const payload = { bookId: activeFileId, startPage: latestPageRef.current };
-        const res = await axiosConfig.post(apiEndpoints.BOOK_START_READING, payload);
+        const payload = {
+          bookId: activeFileId,
+          startPage: latestPageRef.current,
+        };
+        const res = await axiosConfig.post(
+          apiEndpoints.BOOK_START_READING,
+          payload,
+        );
         const sessionId = res?.data?.session?._id || null;
         if (!isActive) return;
         sessionIdRef.current = sessionId;
@@ -184,7 +196,7 @@ const ViewPdf = () => {
         const pageHighlights = getHighlights(activeFileId);
         highlightTextInPDF(".textLayer", pageHighlights, pageNumber);
 
-        if (attempts < 6) {
+        if (attempts < 2) {
           timeoutId = setTimeout(apply, 150);
         }
       };
@@ -352,18 +364,41 @@ const ViewPdf = () => {
   // Swipe-------------------------------------//
   const swipeHandlers = useSwipeable({
     onSwipedLeft: (eventData) => {
-      if (Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)) {
+      if (
+        scrollDirection === "horizontal" &&
+        Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)
+      ) {
         goToNextPage();
       }
     },
     onSwipedRight: (eventData) => {
-      if (Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)) {
+      if (
+        scrollDirection === "horizontal" &&
+        Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)
+      ) {
         goToPrevPage();
       }
     },
-    preventScrollOnSwipe: false,
+    onSwipedUp: (eventData) => {
+      if (
+        scrollDirection === "vertical" &&
+        Math.abs(eventData.deltaY) > Math.abs(eventData.deltaX)
+      ) {
+        goToNextPage();
+      }
+    },
+    onSwipedDown: (eventData) => {
+      if (
+        scrollDirection === "vertical" &&
+        Math.abs(eventData.deltaY) > Math.abs(eventData.deltaX)
+      ) {
+        goToPrevPage();
+      }
+    },
+
+    preventScrollOnSwipe: scrollDirection === "vertical",
     trackMouse: true,
-    delta: 150,
+    delta: 140,
   });
 
   /*------Dark toggle, Zoom and font Increase----*/
@@ -530,7 +565,11 @@ const ViewPdf = () => {
     window.getSelection().removeAllRanges();
   };
 
-  useEffect(() => {}, [currentPage]);
+  const handleScrollDirection = (direction) => {
+    setScrollDirection(direction);
+    localStorage.setItem("pdfScrollDirection", direction);
+  };
+
   if ((!selectedFile2 && fileId) || !hasFetched) {
     return (
       <div className="w-full h-screen flex justify-center items-center bg-white">
@@ -699,7 +738,7 @@ const ViewPdf = () => {
 
           {viewMode === "pdf" ? (
             <div
-              className=" flex justify-center overflow-hidden w-dvw"
+              className="flex justify-center items-center h-full"
               onMouseUpCapture={handleTextSelection}
               onTouchEndCapture={handleTextSelection}
             >
@@ -708,7 +747,7 @@ const ViewPdf = () => {
                 onLoadSuccess={onDocumentLoadSuccess}
                 loading={<div>Loading PDF...</div>}
                 error={<div>Failed to load PDF.</div>}
-                className={`overflow-scroll`}
+                className={`overflow-scroll flex`}
               >
                 <Page
                   pageNumber={pageNumber}
@@ -772,7 +811,7 @@ const ViewPdf = () => {
           </div>
         )}
 
-        <div className="flex gap-4 mb-4 pt-5 justify-center h-30">
+        <div className="flex gap-4 justify-center ">
           <button
             onClick={() => setViewMode("pdf")}
             className={viewMode === "pdf" ? "text-primary" : ""}
@@ -792,7 +831,7 @@ const ViewPdf = () => {
         className={`bg-black/20 w-dvw h-dvh fixed z-11 flex items-baseline-last transition-all duration-300 ${toggleSettings ? "top-[100vh]" : "top-0"}`}
       >
         <div
-          className={`w-dvw h-[50vh] relative rounded-t-[32px] p-[24px] flex flex-col gap-6  ${darkToggle ? "bg-[#011532]" : "bg-white"}`}
+          className={`w-dvw h-[65vh] relative rounded-t-[32px] p-[24px] flex flex-col gap-6  ${darkToggle ? "bg-[#011532]" : "bg-white"}`}
         >
           <div
             className={`flex  justify-between ${darkToggle ? "text-[#F5F9FF] stroke-[#F5F9FF]" : "text-[#333333] stroke-[#333333]"}`}
@@ -825,7 +864,7 @@ const ViewPdf = () => {
               {viewMode === "pdf" && (
                 <div>
                   <div
-                    className={`flex justify-between  font-medium text-[16px] mb-4 ${darkToggle ? "text-[#F5F9FF] " : "text-[#808080]]"}`}
+                    className={`flex justify-between text-[#808080] font-medium text-[16px] mb-4 ${darkToggle ? "text-[#F5F9FF] " : "text-[#808080]]"}`}
                   >
                     <span className="flex">
                       <p>T</p>
@@ -905,6 +944,59 @@ const ViewPdf = () => {
               )}
             </div>
           </div>
+
+          <div>
+            <div className="text-[#808080]">
+              <p>Reading mode</p>
+              <div className="flex justify-center gap-8 pt-2">
+                <span className="flex flex-col items-center">
+                  <button
+                    className={`w-[71px] h-[56px] rounded-[12.15px] flex items-center justify-center ${scrollDirection === "horizontal" ? "bg-primary fill-white  " : "bg-[#E6F0FE] fill-[#4B6481]"}`}
+                    onClick={() => {
+                      handleScrollDirection("horizontal");
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="23"
+                      height="25"
+                      viewBox="0 0 23 25"
+                    >
+                      <path
+                        d="M18.6617 14.1095L14.4631 12.2643C14.3194 12.198 14.1537 12.1538 13.9769 12.1538H13.2587V7.18182C13.2587 6.44923 12.9677 5.74664 12.4497 5.22862C11.9317 4.7106 11.2291 4.41958 10.4965 4.41958C9.76391 4.41958 9.06133 4.7106 8.54331 5.22862C8.02529 5.74664 7.73427 6.44923 7.73427 7.18182V16.1867L5.66811 15.7448C5.45818 15.7116 4.54112 15.579 3.75664 16.3635L2.20979 17.9214L7.86685 23.6558C8.27566 24.0757 8.83916 24.3077 9.42476 24.3077H16.6618C17.7446 24.3077 18.6617 23.5343 18.8385 22.4625L19.855 16.4519C19.9331 15.9851 19.8593 15.5056 19.6445 15.084C19.4297 14.6623 19.0852 14.3207 18.6617 14.1095ZM16.6618 22.0979H9.42476L5.33664 17.9214L9.94406 18.9048V7.18182C9.94406 6.87245 10.1871 6.62937 10.4965 6.62937C10.8059 6.62937 11.049 6.87245 11.049 7.18182V14.0101H12.9936L17.6783 16.0873L16.6618 22.0979ZM2.30923 4.97203H5.52448V6.62937H0V1.1049H1.65734V3.33678C4.2207 1.24853 7.49119 0 11.049 0C17.1148 0 21.2913 3.44727 22.0979 6.62937H20.3632C19.5235 4.44168 16.2862 1.65734 11.049 1.65734C7.70112 1.65734 4.65161 2.91692 2.30923 4.97203Z"
+                        fill=""
+                      />
+                    </svg>
+                  </button>
+                  <p>Swipe</p>
+                </span>
+                <span className="flex flex-col items-center">
+                  <button
+                    className={`w-[71px] h-[56px] rounded-[12.15px] flex items-center justify-center ${scrollDirection === "vertical" ? "bg-primary stroke-white fill-none" : "bg-[#E6F0FE] stroke-[#4B6481] fill-none"}`}
+                    onClick={() => {
+                      handleScrollDirection("vertical");
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="27"
+                      height="27"
+                      viewBox="0 0 27 27"
+                    >
+                      <path
+                        d="M11.6011 8.83836H12.706C13.2921 8.83836 13.8542 9.07117 14.2686 9.48559C14.683 9.9 14.9158 10.4621 14.9158 11.0481M14.9158 11.0481V12.153M14.9158 11.0481C14.9158 10.7551 15.0322 10.4741 15.2394 10.2669C15.4466 10.0597 15.7277 9.94325 16.0207 9.94325C16.6068 9.94325 17.1689 10.1761 17.5833 10.5905C17.9977 11.0049 18.2305 11.567 18.2305 12.153M18.2305 12.153V13.2579M18.2305 12.153C18.2305 11.5741 18.7498 11.1343 19.321 11.2293L19.6989 11.2934C20.2147 11.3795 20.6833 11.6456 21.0213 12.0445C21.3594 12.4435 21.545 12.9494 21.5452 13.4723V15.0998C21.5452 17.5007 21.5452 18.7018 21.1795 19.6575C20.9673 20.2121 20.4071 20.9193 19.9597 21.4297C19.5658 21.867 19.344 22.4324 19.3354 23.0208V24.3069M11.6011 11.0481V3.86633C11.6011 3.42677 11.4265 3.00522 11.1157 2.69441C10.8049 2.3836 10.3833 2.20898 9.94379 2.20898C9.50423 2.20898 9.08268 2.3836 8.77187 2.69441C8.46106 3.00522 8.28645 3.42677 8.28645 3.86633V14.8733L6.49652 13.0778C6.31143 12.8919 6.08909 12.7473 5.84413 12.6534C5.59916 12.5596 5.33711 12.5186 5.07518 12.5332C4.81325 12.5478 4.55738 12.6177 4.32437 12.7382C4.09137 12.8587 3.8865 13.0272 3.72323 13.2325C3.46495 13.5564 3.32129 13.9568 3.31469 14.371C3.30809 14.7852 3.43894 15.1899 3.68677 15.5219L7.66439 20.6022C8.42566 21.5745 8.83889 23.0727 8.83889 24.3069M20.4403 2.20898V8.83836M20.4403 2.20898C19.6669 2.20898 18.2206 4.41215 17.6781 4.97122M20.4403 2.20898C21.2137 2.20898 22.66 4.41215 23.2025 4.97122"
+                        stroke-width="1.65734"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <p>Scroll</p>
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div
             className={`text-[16px] overflow-scroll ${darkToggle ? "text-[#F5F9FF]" : "text-[#808080]"}`}
           >

@@ -6,4 +6,8 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   publicDir: "public",
+
+  optimizeDeps: {
+    include: ["pdfjs-dist", "epubjs", "react", "react-dom", "react-router-dom"],
+  },
 });

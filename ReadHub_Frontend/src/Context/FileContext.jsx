@@ -1,13 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import {
-  createContext,
-  useState,
-  useContext,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from "react";
+import { createContext, useState, useContext, useCallback } from "react";
 import { backendApi } from "../services/api";
 import { extractEpubCover, extractPdfCover } from "../Utils/coverExtractor";
 import {
@@ -101,7 +93,8 @@ export function FileProvider({ children }) {
   useEffect(() => {
     try {
       if (!activeReading) sessionStorage.removeItem("activeReading");
-      else sessionStorage.setItem("activeReading", JSON.stringify(activeReading));
+      else
+        sessionStorage.setItem("activeReading", JSON.stringify(activeReading));
     } catch {}
   }, [activeReading]);
 
@@ -336,10 +329,6 @@ export function FileProvider({ children }) {
     });
   }, [files]);
 
-  const addFile = (file) => {
-    setFiles((prev) => [...prev, file]);
-  };
-
   const selectFile = (file) => {
     setSelectedFile(file);
   };
@@ -396,7 +385,6 @@ export function FileProvider({ children }) {
       value={{
         files,
         selectedFile2,
-        addFile,
         selectFile,
         updateCurrentPage,
         getProgress,

@@ -27,15 +27,15 @@ const Home = () => {
   // for fetching the user details so that it displays the username
   useEffect(() => {
     const fetchUserProfile = async () => {
-            try {
-                const { data } = await axiosConfig.get(apiEndpoints.USER_PROFILE);
-                setUser(data.user);
-                setImage(data.user.profilePicture);
-            } catch (error) {
-                console.error('Error fetching user profile:', error);
-            }
-        };
-        fetchUserProfile();
+      try {
+        const { data } = await axiosConfig.get(apiEndpoints.USER_PROFILE);
+        setUser(data.user);
+        setImage(data.user.profilePicture);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+    };
+    fetchUserProfile();
   }, []);
 
   useEffect(() => {
@@ -56,11 +56,14 @@ const Home = () => {
   }, []);
 
   const dailyGoal = stats?.dailyGoal ?? readingGoal ?? 30;
-  const todayMinutes = (stats?.todayReadingMinutes ?? 0) + (liveReadingMinutes || 0);
+  const todayMinutes =
+    (stats?.todayReadingMinutes ?? 0) + (liveReadingMinutes || 0);
   const todayMinutesRounded = Math.max(0, Math.round(todayMinutes));
   const todayMinutesDisplay = Math.min(dailyGoal, todayMinutesRounded);
   const progressPct =
-    dailyGoal > 0 ? Math.min(100, Math.round((todayMinutes / dailyGoal) * 100)) : 0;
+    dailyGoal > 0
+      ? Math.min(100, Math.round((todayMinutes / dailyGoal) * 100))
+      : 0;
   const remainingMinutes = Math.max(0, Math.ceil(dailyGoal - todayMinutes));
 
   const openPdf = (file) => {
@@ -107,7 +110,9 @@ const Home = () => {
         </div>
         <div>
           <div className="w-fit h-[36px] bg-[#ff5800]/40 border-1 border-[#ff5b04] text-[#ff5b04] font-medium rounded-full flex justify-center items-center px-3 sm:px-[24px] max-xsm:text-[13px] max-xsm:px-1">
-            <p className="truncate">{stats?.currentStreak ?? 0} day Reading streak </p>
+            <p className="truncate">
+              {stats?.currentStreak ?? 0} day Reading streak{" "}
+            </p>
             <img
               src="/fire.svg"
               alt="fire"
@@ -127,7 +132,9 @@ const Home = () => {
           </div>
           <div className="flex flex-col">
             <span className="flex items-baseline-last">
-              <p className="text-display_Medium leading-10">{todayMinutesDisplay}</p>
+              <p className="text-display_Medium leading-10">
+                {todayMinutesDisplay}
+              </p>
               <p className="">/ {dailyGoal} min</p>
             </span>
             <span className="w-full bg-[#cde1fe] h-[14px] flex rounded-full overflow-hidden">
@@ -139,7 +146,9 @@ const Home = () => {
           </div>
           <div>
             <p className="font-medium">
-              {remainingMinutes} minutes to reach your goal
+              {remainingMinutes === 0
+                ? `You have reached your goal of today`
+                : `${remainingMinutes} minutes to reach your goal `}
             </p>
           </div>
         </div>
