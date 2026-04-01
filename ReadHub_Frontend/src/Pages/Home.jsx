@@ -82,6 +82,25 @@ const Home = () => {
 
   return (
     <div className="pb-30">
+      <style>{`
+        @media (prefers-reduced-motion: reduce) {
+          .rh-streak-glow,
+          .rh-fire-alive {
+            animation: none !important;
+          }
+        }
+        @keyframes rh_streak_glow {
+          0% { box-shadow: 0 0 0 rgba(255,91,4,0.0); transform: translateZ(0); }
+          50% { box-shadow: 0 0 14px rgba(255,91,4,0.28), 0 0 28px rgba(255,91,4,0.14); }
+          100% { box-shadow: 0 0 0 rgba(255,91,4,0.0); }
+        }
+        @keyframes rh_fire_alive {
+          0% { transform: translateY(0) rotate(-2deg) scale(1); filter: saturate(1); }
+          35% { transform: translateY(-1px) rotate(2deg) scale(1.03); filter: saturate(1.15); }
+          70% { transform: translateY(0) rotate(-1deg) scale(1.01); filter: saturate(1.05); }
+          100% { transform: translateY(0) rotate(-2deg) scale(1); filter: saturate(1); }
+        }
+      `}</style>
       <div className="flex pt-13 pb-[26px] justify-between items-center px-[16px]">
         <div className="flex flex-row items-center">
           <span className="flex h-[46px] w-[46px] bg-[#d9d9d9] rounded-full justify-center items-center">
@@ -109,14 +128,19 @@ const Home = () => {
           </span>
         </div>
         <div>
-          <div className="w-fit h-[36px] bg-[#ff5800]/40 border-1 border-[#ff5b04] text-[#ff5b04] font-medium rounded-full flex justify-center items-center px-3 sm:px-[24px] max-xsm:text-[13px] max-xsm:px-1">
-            <p className="truncate">
+          <div
+            className="rh-streak-glow w-fit h-[36px] bg-[#ff5800]/40 border-1 border-[#ff5b04] text-[#ff5b04] font-medium rounded-full flex justify-center items-center px-3 sm:px-[24px] max-xsm:text-[13px] max-xsm:px-1 relative overflow-hidden"
+            style={{ animation: "rh_streak_glow 2.6s ease-in-out infinite" }}
+          >
+            <span className="absolute inset-[-10px] bg-[#ff5b04]/10 blur-xl opacity-40" />
+            <p className="truncate relative z-10">
               {stats?.currentStreak ?? 0} day Reading streak{" "}
             </p>
             <img
               src="/fire.svg"
               alt="fire"
-              className="w-[24px] max-xsm:w-[16px]"
+              className="rh-fire-alive w-[24px] max-xsm:w-[16px] relative z-10"
+              style={{ animation: "rh_fire_alive 1.35s ease-in-out infinite" }}
             />
           </div>
         </div>
