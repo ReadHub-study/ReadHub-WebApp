@@ -28,6 +28,8 @@ const ViewPdf = () => {
     fetchBooks,
     startLocalReadingTimer,
     stopLocalReadingTimer,
+    readingGoal,
+    liveReadingMinutes,
   } = useFiles();
 
   const activeFile = selectedFile2?.book ?? selectedFile2;
@@ -131,9 +133,48 @@ const ViewPdf = () => {
   const sessionBookIdRef = useRef(null);
   const latestPageRef = useRef(pageNumber);
 
+  // Goal celebration: detect when goal is met during this reading session and celebrate on exit.
+  const [stats, setStats] = useState(null);
+  const goalMetRef = useRef(false);
+  const todayKeyRef = useRef(null);
+
   useEffect(() => {
     latestPageRef.current = pageNumber;
   }, [pageNumber]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await axiosConfig.get(apiEndpoints.BOOK_STATS);
+        setStats(res.data);
+      } catch (e) {
+        // Ignore; goal celebration just won't trigger without stats.
+        setStats(null);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const dailyGoal = stats?.dailyGoal ?? readingGoal ?? 30;
+  const todayMinutes =
+    (stats?.todayReadingMinutes ?? 0) + (liveReadingMinutes || 0);
+
+  useEffect(() => {
+    if (goalMetRef.current) return;
+    if (!dailyGoal || dailyGoal <= 0) return;
+
+    const minutes = Number(todayMinutes || 0);
+    if (!Number.isFinite(minutes)) return;
+
+    const todayKey = new Date().toDateString();
+    todayKeyRef.current = todayKey;
+
+    // Only mark as met if we crossed the threshold today.
+    if (minutes >= dailyGoal) {
+      goalMetRef.current = true;
+    }
+  }, [todayMinutes, dailyGoal]);
 
   useEffect(() => {
     if (!activeFileId) return;
@@ -171,6 +212,22 @@ const ViewPdf = () => {
 
       sessionIdRef.current = null;
       sessionBookIdRef.current = null;
+
+      // Trigger a 2s celebration on the next screen if the user met today's goal during this session.
+      // Show at most once per day.
+      try {
+        const todayKey = todayKeyRef.current || new Date().toDateString();
+        const alreadyShown = localStorage.getItem("rh_goalCelebrationShown");
+        if (goalMetRef.current && alreadyShown !== todayKey) {
+          sessionStorage.setItem(
+            "rh_goalCelebration",
+            JSON.stringify({ at: Date.now(), day: todayKey }),
+          );
+          localStorage.setItem("rh_goalCelebrationShown", todayKey);
+        }
+      } catch {
+        // ignore
+      }
 
       if (!sessionId) return;
       if (sessionBookId && sessionBookId !== activeFileId) return;
