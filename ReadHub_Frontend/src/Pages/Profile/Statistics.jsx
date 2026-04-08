@@ -100,6 +100,27 @@ const Statistics = () => {
   const streakBarPct =
     !loading && currentStreak > 0 && streakPct === 0 ? 2 : streakPct
 
+  const achievements = useMemo(() => {
+    const hours = Number(totalHoursRead || 0)
+    const highlightsCount = Number(totalHighlights || 0)
+
+    return {
+      firstBook: completedBooks >= 1,
+      streak7: safeBestStreak >= 7,
+      highlights100: highlightsCount >= 100,
+      books10: completedBooks >= 10,
+      streak30: safeBestStreak >= 30,
+      hours1000: Number.isFinite(hours) && hours >= 1000,
+    }
+  }, [completedBooks, safeBestStreak, totalHoursRead, totalHighlights])
+
+  const achievementCardClass = (achieved) =>
+    `flex flex-col justify-center items-center gap-4 rounded-xl py-5 px-1 border transition-colors ${
+      achieved
+        ? 'bg-yellow-50 border-yellow-200'
+        : 'bg-blue-50 border-transparent'
+    }`
+
   return (
     <>
     <div  className='p-5 bg-gray-100 min-h-screen'>
@@ -239,27 +260,27 @@ const Statistics = () => {
             </div>
 
             <div className="cards  grid grid-cols-3 gap-2">
-                <div className='flex flex-col justify-center items-center gap-4 bg-blue-50 rounded-xl py-5 px-1'>
+                <div className={achievementCardClass(achievements.firstBook)}>
                     <span><img src={ReadHubImages.bookAchievementIcon} alt="" /></span>
                     <span>First Book</span>
                 </div>
-                <div className='flex flex-col justify-center items-center gap-4 bg-blue-50 rounded-xl py-5 px-1'>
+                <div className={achievementCardClass(achievements.streak7)}>
                     <span><img src={ReadHubImages.fireStreakIcon} alt="" /></span>
                     <span>7 Day Streak</span>
                 </div>
-                <div className='flex flex-col justify-center items-center gap-4 bg-blue-50 rounded-xl py-5 px-1'>
+                <div className={achievementCardClass(achievements.highlights100)}>
                     <span><img src={ReadHubImages.starHighlightIcon} alt="" /></span>
                     <span>100 Highlights</span>
                 </div>
-                <div className='flex flex-col justify-center items-center gap-4 bg-blue-50 rounded-xl py-5 px-1'>
+                <div className={achievementCardClass(achievements.books10)}>
                     <span><img src={ReadHubImages.booksIcon} alt="" /></span>
                     <span>10 Books</span>
                 </div>
-                <div className='flex flex-col justify-center items-center gap-4 bg-blue-50 rounded-xl py-5 px-1'>
+                <div className={achievementCardClass(achievements.streak30)}>
                     <span><img src={ReadHubImages.streakTrophyIcon} alt="" /></span>
                     <span>30 Day Streak</span>
                 </div>
-                <div className='flex flex-col justify-center items-center gap-4 bg-blue-50 rounded-xl py-5 px-1'>
+                <div className={achievementCardClass(achievements.hours1000)}>
                     <span><img src={ReadHubImages.diamondIcon} alt="" /></span>
                     <span>1000 Hours</span>
                 </div>
