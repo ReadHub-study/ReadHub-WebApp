@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Nav from "./Components/Nav";
 
 import { Route, Routes, useLocation } from "react-router-dom";
+import GoalCelebrationOverlay from "./Components/GoalCelebrationOverlay";
 
 import Home from "./Pages/Home";
 import Library from "./Pages/Library";
@@ -33,10 +34,38 @@ function App() {
   const navRoutes = ["/home", "/library", "/notes", "/explore", "/profile"];
   const showNav = navRoutes.includes(location.pathname);
 
+  const [showGoalCelebration, setShowGoalCelebration] = useState(false);
+
+  useEffect(() => {
+    // Celebration is triggered when leaving ViewPdf (set in sessionStorage).
+    // Show it on the next screen (Home/Library/etc), but never on the reader route itself.
+    if (location.pathname.startsWith("/viewpdf")) return;
+
+    try {
+      const raw = sessionStorage.getItem("rh_goalCelebration");
+      if (!raw) return;
+
+      sessionStorage.removeItem("rh_goalCelebration");
+
+      const payload = JSON.parse(raw);
+      const at = Number(payload?.at || 0);
+      if (!Number.isFinite(at) || Date.now() - at > 15000) return;
+
+      setShowGoalCelebration(true);
+    } catch {
+      sessionStorage.removeItem("rh_goalCelebration");
+    }
+  }, [location.pathname]);
+
   return (
     <div
       className={`font-manrope h-dvh ${showNav ? "bg-background overflow-scroll" : ""}`}
     >
+      <GoalCelebrationOverlay
+        open={showGoalCelebration}
+        durationMs={2000}
+        onDone={() => setShowGoalCelebration(false)}
+      />
       {showNav && <TimerControler />}
 
       <Routes>
