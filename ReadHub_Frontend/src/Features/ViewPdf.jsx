@@ -725,7 +725,7 @@ const ViewPdf = () => {
           </div>
         </div>
       </div>
-      <div className="top-15 relative overflow-scroll">
+      <div className="top-15 relative overflow-scroll overscroll-contain">
         <div className="px-4 ">
           <h2 className="text-tittle_Medium font-medium text-[14px] leading-[20px] truncate">
             {activeFileTitle}
@@ -734,7 +734,7 @@ const ViewPdf = () => {
             Page {pageNumber} of {numPages}
           </h2>
         </div>
-        <div>
+        <div className="overflow-scroll overscroll-contain">
           {/* Toggle between PDF and Text view */}
 
           {viewMode === "pdf" ? (
