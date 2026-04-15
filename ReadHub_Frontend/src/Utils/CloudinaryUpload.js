@@ -5,6 +5,16 @@ import { backendApi } from "../services/api";
  * Upload file to cloudinary using signed upload
  */
 
+const MAX_DIRECT_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
+const DEFAULT_CHUNK_BYTES = 5 * 1024 * 1024; // 5MB
+
+const makeUploadId = () => {
+  try {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  } catch {}
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
 export const uploadToCloudinary = async (
   file,
   folder = "documents",
@@ -26,6 +36,64 @@ export const uploadToCloudinary = async (
 
     console.log("Uploading file to Cloudinary...");
 
+    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+
+    // For large files (>10MB), use Cloudinary's chunked upload to avoid size limits
+    // while preserving quality (no compression).
+    if (file?.size && file.size > MAX_DIRECT_UPLOAD_BYTES && typeof file.slice === "function") {
+      const uploadId = makeUploadId();
+      const total = file.size;
+      const chunkSize = DEFAULT_CHUNK_BYTES;
+      let uploadedBytes = 0;
+      let lastResponse = null;
+
+      for (let start = 0; start < total; start += chunkSize) {
+        const end = Math.min(start + chunkSize, total);
+        const chunk = file.slice(start, end);
+
+        const formData = new FormData();
+        formData.append("file", chunk);
+        formData.append("api_key", apiKey);
+        formData.append("timestamp", timestamp);
+        formData.append("signature", signature);
+        formData.append("folder", uploadFolder);
+        formData.append("allowed_formats", allowed_formats);
+        formData.append("resource_type", "raw");
+
+        const contentRange = `bytes ${start}-${end - 1}/${total}`;
+
+        lastResponse = await axios.post(cloudinaryUrl, formData, {
+          headers: {
+            "X-Unique-Upload-Id": uploadId,
+            "Content-Range": contentRange,
+          },
+          onUploadProgress: (evt) => {
+            if (!onProgress) return;
+            const loaded = Number(evt.loaded || 0);
+            const chunkPct = chunk.size ? loaded / chunk.size : 0;
+            const overallLoaded = Math.min(total, start + chunkPct * chunk.size);
+            const percent = Math.round((overallLoaded / total) * 100);
+            onProgress(percent);
+          },
+        });
+
+        uploadedBytes = end;
+        if (onProgress) {
+          const percent = Math.round((uploadedBytes / total) * 100);
+          onProgress(percent);
+        }
+      }
+
+      const data = lastResponse?.data;
+      return {
+        url: data?.secure_url,
+        publicId: data?.public_id,
+        resourceType: data?.resource_type,
+        format: data?.format,
+        bytes: data?.bytes,
+      };
+    }
+
     // Create form data for Cloudinary
     const formData = new FormData();
     formData.append("file", file);
@@ -38,15 +106,13 @@ export const uploadToCloudinary = async (
 
     console.log("FormData:", Object.fromEntries(formData.entries()));
 
-    // Upload directly to Cloudinary
-    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
-
     const response = await axios.post(cloudinaryUrl, formData, {
       onUploadProgress: (ProgressEvent) => {
         if (onProgress && ProgressEvent.total) {
           const percent = Math.round(
-            (ProgressEvent.loaded / ProgressEvent.total) * onProgress(percent),
+            (ProgressEvent.loaded / ProgressEvent.total) * 100,
           );
+          onProgress(percent);
         }
       },
     });

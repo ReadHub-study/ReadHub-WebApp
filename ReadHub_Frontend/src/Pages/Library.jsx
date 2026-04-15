@@ -49,6 +49,12 @@ const Library = () => {
     setFileName(selectedFile.name);
     setUploadProgress(0);
 
+    // Note: true “quality-preserving compression” to <10MB isn’t reliably possible for PDFs/EPUBs.
+    // Instead, large files are uploaded in chunks (see CloudinaryUpload.js) so quality is preserved.
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      setUploadProgress(5);
+    }
+
     if (
       selectedFile.type === "application/pdf" ||
       selectedFile.name.endsWith(".pdf")
