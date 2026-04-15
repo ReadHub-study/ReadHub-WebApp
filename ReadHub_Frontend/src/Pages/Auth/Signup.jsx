@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { toast } from "react-toastify";
-import { LuLoaderCircle } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuLoaderCircle } from "react-icons/lu";
 
 import { validateEmail } from "./validate";
 import { ReadHubImages } from "../../assets/asset";
@@ -18,6 +18,8 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -137,28 +139,82 @@ const Signup = () => {
 
               <div className="field">
                 <label htmlFor="">Password</label>
-                <input
-                  type="password"
-                  id="password"
-                  className="form-control"
-                  placeholder="********"
-                  required
-                  onChange={(e) => setPassword(e.target.value)}
-                  value={password}
-                />
+                <div style={{ position: "relative", width: "100%" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    className="form-control"
+                    placeholder="********"
+                    required
+                    onChange={(e) => setPassword(e.target.value)}
+                    value={password}
+                    style={{ paddingRight: "44px" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      color: "#4d4d4d",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {showPassword ? <LuEyeOff size={18} /> : <LuEye size={18} />}
+                  </button>
+                </div>
               </div>
 
               <div className="field">
                 <label htmlFor="">Confirm Password</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  className="form-control"
-                  placeholder="********"
-                  required
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  value={confirmPassword}
-                />
+                <div style={{ position: "relative", width: "100%" }}>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    id="confirmPassword"
+                    className="form-control"
+                    placeholder="********"
+                    required
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    value={confirmPassword}
+                    style={{ paddingRight: "44px" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((s) => !s)}
+                    aria-label={
+                      showConfirmPassword ? "Hide password" : "Show password"
+                    }
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      color: "#4d4d4d",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {showConfirmPassword ? (
+                      <LuEyeOff size={18} />
+                    ) : (
+                      <LuEye size={18} />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {error && (

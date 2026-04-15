@@ -6,13 +6,14 @@ import { validateEmail } from "./validate";
 import { ReadHubImages } from "../../assets/asset";
 import axiosConfig from "../../Util/axiosConfig";
 import { apiEndpoints } from "../../Util/apiEndpoints";
-import { LuLoaderCircle } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuLoaderCircle } from "react-icons/lu";
 
 const Login = () => {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -117,15 +118,39 @@ const Login = () => {
 
               <div className="field">
                 <label htmlFor="">Password</label>
-                <input
-                  type="password"
-                  id="password"
-                  className="form-control"
-                  placeholder="********"
-                  required
-                  onChange={(e) => setPassword(e.target.value)}
-                  value={password}
-                />
+                <div style={{ position: "relative", width: "100%" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    className="form-control"
+                    placeholder="********"
+                    required
+                    onChange={(e) => setPassword(e.target.value)}
+                    value={password}
+                    style={{ paddingRight: "44px" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      color: "#4d4d4d",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {showPassword ? <LuEyeOff size={18} /> : <LuEye size={18} />}
+                  </button>
+                </div>
               </div>
 
               <div style={{ justifyContent: "end", marginLeft: "12rem" }}>
