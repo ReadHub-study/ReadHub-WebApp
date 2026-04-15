@@ -22,6 +22,25 @@ export const uploadToCloudinary = async (
   onProgress = null,
 ) => {
   try {
+    // For large files, prefer backend-mediated upload (avoids browser header/CORS limitations).
+    if (file?.size && file.size > MAX_DIRECT_UPLOAD_BYTES) {
+      try {
+        const serverResult = await backendApi.uploadBookFile(file);
+        return {
+          url: serverResult?.url,
+          publicId: serverResult?.publicId,
+          resourceType: serverResult?.resourceType,
+          format: serverResult?.format,
+          bytes: serverResult?.bytes,
+        };
+      } catch (serverUploadError) {
+        console.warn(
+          "Backend large upload failed; falling back to direct upload:",
+          serverUploadError,
+        );
+      }
+    }
+
     const signatureData = await backendApi.getCloudinarySignature();
 
     const {
@@ -41,57 +60,63 @@ export const uploadToCloudinary = async (
     // For large files (>10MB), use Cloudinary's chunked upload to avoid size limits
     // while preserving quality (no compression).
     if (file?.size && file.size > MAX_DIRECT_UPLOAD_BYTES && typeof file.slice === "function") {
-      const uploadId = makeUploadId();
-      const total = file.size;
-      const chunkSize = DEFAULT_CHUNK_BYTES;
-      let uploadedBytes = 0;
-      let lastResponse = null;
+      try {
+        const uploadId = makeUploadId();
+        const total = file.size;
+        const chunkSize = DEFAULT_CHUNK_BYTES;
+        let uploadedBytes = 0;
+        let lastResponse = null;
 
-      for (let start = 0; start < total; start += chunkSize) {
-        const end = Math.min(start + chunkSize, total);
-        const chunk = file.slice(start, end);
+        for (let start = 0; start < total; start += chunkSize) {
+          const end = Math.min(start + chunkSize, total);
+          const chunk = file.slice(start, end);
 
-        const formData = new FormData();
-        formData.append("file", chunk);
-        formData.append("api_key", apiKey);
-        formData.append("timestamp", timestamp);
-        formData.append("signature", signature);
-        formData.append("folder", uploadFolder);
-        formData.append("allowed_formats", allowed_formats);
-        formData.append("resource_type", "raw");
+          const formData = new FormData();
+          formData.append("file", chunk);
+          formData.append("api_key", apiKey);
+          formData.append("timestamp", timestamp);
+          formData.append("signature", signature);
+          formData.append("folder", uploadFolder);
+          formData.append("allowed_formats", allowed_formats);
+          formData.append("resource_type", "raw");
 
-        const contentRange = `bytes ${start}-${end - 1}/${total}`;
+          const contentRange = `bytes ${start}-${end - 1}/${total}`;
 
-        lastResponse = await axios.post(cloudinaryUrl, formData, {
-          headers: {
-            "X-Unique-Upload-Id": uploadId,
-            "Content-Range": contentRange,
-          },
-          onUploadProgress: (evt) => {
-            if (!onProgress) return;
-            const loaded = Number(evt.loaded || 0);
-            const chunkPct = chunk.size ? loaded / chunk.size : 0;
-            const overallLoaded = Math.min(total, start + chunkPct * chunk.size);
-            const percent = Math.round((overallLoaded / total) * 100);
+          lastResponse = await axios.post(cloudinaryUrl, formData, {
+            headers: {
+              "X-Unique-Upload-Id": uploadId,
+              "Content-Range": contentRange,
+            },
+            onUploadProgress: (evt) => {
+              if (!onProgress) return;
+              const loaded = Number(evt.loaded || 0);
+              const chunkPct = chunk.size ? loaded / chunk.size : 0;
+              const overallLoaded = Math.min(total, start + chunkPct * chunk.size);
+              const percent = Math.round((overallLoaded / total) * 100);
+              onProgress(percent);
+            },
+          });
+
+          uploadedBytes = end;
+          if (onProgress) {
+            const percent = Math.round((uploadedBytes / total) * 100);
             onProgress(percent);
-          },
-        });
-
-        uploadedBytes = end;
-        if (onProgress) {
-          const percent = Math.round((uploadedBytes / total) * 100);
-          onProgress(percent);
+          }
         }
-      }
 
-      const data = lastResponse?.data;
-      return {
-        url: data?.secure_url,
-        publicId: data?.public_id,
-        resourceType: data?.resource_type,
-        format: data?.format,
-        bytes: data?.bytes,
-      };
+        const data = lastResponse?.data;
+        return {
+          url: data?.secure_url,
+          publicId: data?.public_id,
+          resourceType: data?.resource_type,
+          format: data?.format,
+          bytes: data?.bytes,
+        };
+      } catch (chunkError) {
+        // Some environments may block chunked uploads due to CORS/header restrictions.
+        // Fall back to a normal single request (may still fail if provider limits apply).
+        console.warn("Chunked upload failed; falling back to direct upload:", chunkError);
+      }
     }
 
     // Create form data for Cloudinary

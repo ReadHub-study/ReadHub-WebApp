@@ -112,7 +112,7 @@ const Library = () => {
       }, 500);
     } catch (error) {
       console.error("PDF upload failed:", error);
-      alert("Failed to upload pdf file");
+      alert(`Failed to upload pdf file${error?.message ? `: ${error.message}` : ""}`);
       setIsUploading(false);
     }
   };
