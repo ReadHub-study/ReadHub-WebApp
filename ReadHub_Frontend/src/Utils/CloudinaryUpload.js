@@ -5,14 +5,16 @@ import { backendApi } from "../services/api";
  * Upload file to cloudinary using signed upload
  */
 
-const MAX_DIRECT_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
-const DEFAULT_CHUNK_BYTES = 5 * 1024 * 1024; // 5MB
+// Cloudinary plan limit (current project): 10MB per upload for raw files.
+// This limit is enforced by Cloudinary and cannot be bypassed without upgrading the plan
+// or using a different storage provider.
+const MAX_CLOUDINARY_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
 
-const makeUploadId = () => {
-  try {
-    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
-  } catch {}
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const formatBytes = (bytes) => {
+  const b = Number(bytes || 0);
+  if (!Number.isFinite(b) || b <= 0) return "0B";
+  const mb = b / (1024 * 1024);
+  return `${mb.toFixed(mb >= 10 ? 0 : 1)}MB`;
 };
 
 export const uploadToCloudinary = async (
@@ -22,23 +24,10 @@ export const uploadToCloudinary = async (
   onProgress = null,
 ) => {
   try {
-    // For large files, prefer backend-mediated upload (avoids browser header/CORS limitations).
-    if (file?.size && file.size > MAX_DIRECT_UPLOAD_BYTES) {
-      try {
-        const serverResult = await backendApi.uploadBookFile(file, onProgress);
-        return {
-          url: serverResult?.url,
-          publicId: serverResult?.publicId,
-          resourceType: serverResult?.resourceType,
-          format: serverResult?.format,
-          bytes: serverResult?.bytes,
-        };
-      } catch (serverUploadError) {
-        console.warn(
-          "Backend large upload failed; falling back to direct upload:",
-          serverUploadError,
-        );
-      }
+    if (file?.size && file.size > MAX_CLOUDINARY_UPLOAD_BYTES) {
+      throw new Error(
+        `File is ${formatBytes(file.size)}. This project’s current Cloudinary upload limit is ${formatBytes(MAX_CLOUDINARY_UPLOAD_BYTES)}. Please upload a smaller file or upgrade the Cloudinary plan.`,
+      );
     }
 
     const signatureData = await backendApi.getCloudinarySignature();
@@ -56,68 +45,6 @@ export const uploadToCloudinary = async (
     console.log("Uploading file to Cloudinary...");
 
     const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
-
-    // For large files (>10MB), use Cloudinary's chunked upload to avoid size limits
-    // while preserving quality (no compression).
-    if (file?.size && file.size > MAX_DIRECT_UPLOAD_BYTES && typeof file.slice === "function") {
-      try {
-        const uploadId = makeUploadId();
-        const total = file.size;
-        const chunkSize = DEFAULT_CHUNK_BYTES;
-        let uploadedBytes = 0;
-        let lastResponse = null;
-
-        for (let start = 0; start < total; start += chunkSize) {
-          const end = Math.min(start + chunkSize, total);
-          const chunk = file.slice(start, end);
-
-          const formData = new FormData();
-          formData.append("file", chunk);
-          formData.append("api_key", apiKey);
-          formData.append("timestamp", timestamp);
-          formData.append("signature", signature);
-          formData.append("folder", uploadFolder);
-          formData.append("allowed_formats", allowed_formats);
-          formData.append("resource_type", "raw");
-
-          const contentRange = `bytes ${start}-${end - 1}/${total}`;
-
-          lastResponse = await axios.post(cloudinaryUrl, formData, {
-            headers: {
-              "X-Unique-Upload-Id": uploadId,
-              "Content-Range": contentRange,
-            },
-            onUploadProgress: (evt) => {
-              if (!onProgress) return;
-              const loaded = Number(evt.loaded || 0);
-              const chunkPct = chunk.size ? loaded / chunk.size : 0;
-              const overallLoaded = Math.min(total, start + chunkPct * chunk.size);
-              const percent = Math.round((overallLoaded / total) * 100);
-              onProgress(percent);
-            },
-          });
-
-          uploadedBytes = end;
-          if (onProgress) {
-            const percent = Math.round((uploadedBytes / total) * 100);
-            onProgress(percent);
-          }
-        }
-
-        const data = lastResponse?.data;
-        return {
-          url: data?.secure_url,
-          publicId: data?.public_id,
-          resourceType: data?.resource_type,
-          format: data?.format,
-          bytes: data?.bytes,
-        };
-      } catch (chunkError) {
-        // Some environments may block chunked uploads due to CORS/header restrictions.
-        // Fall back to a normal single request (may still fail if provider limits apply).
-        console.warn("Chunked upload failed; falling back to direct upload:", chunkError);
-      }
-    }
 
     // Create form data for Cloudinary
     const formData = new FormData();

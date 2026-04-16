@@ -8,6 +8,7 @@ import { useFiles } from "../Context/FileContext";
 import Epub from "epubjs";
 
 import { extractPdfCover, extractEpubCover } from "../Utils/coverExtractor";
+import { optimizePdfLossy } from "../Utils/pdfLossyOptimize";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -45,15 +46,28 @@ const Library = () => {
 
     if (!selectedFile) return;
 
+    const isPdf =
+      selectedFile.type === "application/pdf" ||
+      selectedFile.name.toLowerCase().endsWith(".pdf");
+
+    // Cloudinary upload limit is 10MB. For PDFs, we allow a lossy optimization pass.
+    if (!isPdf && selectedFile.size > 10 * 1024 * 1024) {
+      const mb = (selectedFile.size / (1024 * 1024)).toFixed(1);
+      alert(`File is ${mb}MB. Max upload is 10MB right now.`);
+      setIsUploading(false);
+      setUploadProgress(0);
+      try {
+        event.target.value = "";
+      } catch {}
+      return;
+    }
+
     setIsUploading(true);
     setFileName(selectedFile.name);
     setUploadProgress(0);
 
     // Note: true “quality-preserving compression” to <10MB isn’t reliably possible for PDFs/EPUBs.
-    // Instead, large files are uploaded in chunks (see CloudinaryUpload.js) so quality is preserved.
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      setUploadProgress(5);
-    }
+    // Note: Cloudinary currently limits uploads to 10MB on this plan (PDFs > 10MB are lossy-optimized before upload).
 
     if (
       selectedFile.type === "application/pdf" ||
@@ -92,6 +106,28 @@ const Library = () => {
       const coverImage = await extractPdfCover(pdf);
       const totalPages = pdf.numPages;
 
+      let uploadFile = file;
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadProgress(20);
+        const optimizedBlob = await optimizePdfLossy(
+          pdf,
+          { maxBytes: 10 * 1024 * 1024 },
+          ({ pass, page, totalPages: total }) => {
+            const base = 20;
+            const span = 35;
+            const pagePct = total > 0 ? page / total : 0;
+            const passBonus = Math.min(2, Math.max(0, pass - 1)) * 0.08;
+            const pct = base + Math.round(Math.min(1, pagePct + passBonus) * span);
+            setUploadProgress((prev) => (pct > prev ? pct : prev));
+          },
+        );
+
+        uploadFile = new File([optimizedBlob], file.name, {
+          type: "application/pdf",
+          lastModified: Date.now(),
+        });
+      }
+
       await pdf.destroy();
       setUploadProgress(60);
 
@@ -99,7 +135,7 @@ const Library = () => {
       await new Promise((r) => setTimeout(r, 0));
 
       const uploadedBook = await uploadBook(
-        file,
+        uploadFile,
         {
           title: file.name.replace(".pdf", ""),
           author: "Unknown",
