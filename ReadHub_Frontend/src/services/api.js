@@ -70,11 +70,19 @@ export const backendApi = {
     return response.data;
   },
 
-  uploadBookFile: async (file) => {
+  uploadBookFile: async (file, onProgress = null) => {
     const formData = new FormData();
     formData.append("file", file);
     const response = await api.post("/api/book/upload-file", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (evt) => {
+        if (!onProgress) return;
+        const total = Number(evt.total || 0);
+        const loaded = Number(evt.loaded || 0);
+        if (!Number.isFinite(total) || total <= 0) return;
+        const percent = Math.round((loaded / total) * 100);
+        onProgress(percent);
+      },
     });
     return response.data;
   },

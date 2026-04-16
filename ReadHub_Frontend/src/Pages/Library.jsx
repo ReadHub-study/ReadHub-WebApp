@@ -90,6 +90,7 @@ const Library = () => {
 
       // ✅ Extract cover from buffer (you'll adjust your function)
       const coverImage = await extractPdfCover(pdf);
+      const totalPages = pdf.numPages;
 
       await pdf.destroy();
       setUploadProgress(60);
@@ -97,12 +98,22 @@ const Library = () => {
       // give iOS a breather
       await new Promise((r) => setTimeout(r, 0));
 
-      const uploadedBook = await uploadBook(file, {
-        title: file.name.replace(".pdf", ""),
-        author: "Unknown",
-        totalPages: pdf.numPages,
-        coverImage: coverImage,
-      });
+      const uploadedBook = await uploadBook(
+        file,
+        {
+          title: file.name.replace(".pdf", ""),
+          author: "Unknown",
+          totalPages: totalPages,
+          coverImage: coverImage,
+        },
+        (pct) => {
+          const percent = Number(pct);
+          if (!Number.isFinite(percent)) return;
+          // Map upload progress into the "uploading" slice (60% -> 95%)
+          const mapped = 60 + Math.round((Math.min(100, Math.max(0, percent)) / 100) * 35);
+          setUploadProgress((prev) => (mapped > prev ? mapped : prev));
+        },
+      );
 
       setUploadProgress(100);
       await fetchBooks();

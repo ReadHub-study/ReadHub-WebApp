@@ -25,7 +25,7 @@ export const uploadToCloudinary = async (
     // For large files, prefer backend-mediated upload (avoids browser header/CORS limitations).
     if (file?.size && file.size > MAX_DIRECT_UPLOAD_BYTES) {
       try {
-        const serverResult = await backendApi.uploadBookFile(file);
+        const serverResult = await backendApi.uploadBookFile(file, onProgress);
         return {
           url: serverResult?.url,
           publicId: serverResult?.publicId,

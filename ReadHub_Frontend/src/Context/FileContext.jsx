@@ -221,7 +221,7 @@ export function FileProvider({ children }) {
   }, []);
 
   //Upload book to cloudinary and save book details to backend
-  const uploadBook = useCallback(async (file, metadata = {}) => {
+  const uploadBook = useCallback(async (file, metadata = {}, onProgress = null) => {
     try {
       //Extract cover
 
@@ -231,7 +231,7 @@ export function FileProvider({ children }) {
       const coverImage = metadata.coverImage || null;
       //Upload book file to Cloudinary
 
-      const bookUpload = await uploadToCloudinary(file, "books", "raw");
+      const bookUpload = await uploadToCloudinary(file, "books", "raw", onProgress);
 
       //Upload cover to Cloudinary(if exists)
       let coverUpload = null;
