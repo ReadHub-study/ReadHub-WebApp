@@ -123,7 +123,13 @@ const Library = () => {
       }, 500);
     } catch (error) {
       console.error("PDF upload failed:", error);
-      alert(`Failed to upload pdf file${error?.message ? `: ${error.message}` : ""}`);
+      const serverMsg =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.response?.data?.details ||
+        "";
+      const details = serverMsg || error?.message || "";
+      alert(`Failed to upload pdf file${details ? `: ${details}` : ""}`);
       setIsUploading(false);
     }
   };

@@ -74,7 +74,7 @@ export const backendApi = {
     const formData = new FormData();
     formData.append("file", file);
     const response = await api.post("/api/book/upload-file", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+      // Let the browser set the multipart boundary; setting Content-Type manually can break uploads.
       onUploadProgress: (evt) => {
         if (!onProgress) return;
         const total = Number(evt.total || 0);

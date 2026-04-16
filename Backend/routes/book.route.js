@@ -16,7 +16,10 @@ import {
 import { authenticate } from '../middlewares/auth.middleware.js'
 
 const router = express.Router()
-const upload = multer({ dest: os.tmpdir() })
+const upload = multer({
+  dest: os.tmpdir(),
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+})
 
 /**
  * @swagger
@@ -60,7 +63,16 @@ const upload = multer({ dest: os.tmpdir() })
  */
 router.post('/upload', authenticate, uploadBook)
 // Backend-mediated upload for large files (avoids browser/CORS limitations)
-router.post('/upload-file', authenticate, upload.single('file'), uploadBookFile)
+router.post('/upload-file', authenticate, (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (!err) return next()
+    return res.status(400).json({
+      message: 'File upload failed',
+      error: err.message,
+      code: err.code,
+    })
+  })
+}, uploadBookFile)
 /**
  * @swagger
  * /api/book:
