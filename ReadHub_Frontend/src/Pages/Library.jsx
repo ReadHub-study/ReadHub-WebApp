@@ -34,6 +34,8 @@ const Library = () => {
   const [activeFilter, setActiveFilter] = useState("All books");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showCompressionInfo, setShowCompressionInfo] = useState(false);
+  const [uploadStep, setUploadStep] = useState("uploading"); // 'compressing' | 'uploading'
   const [searchQuery, setSearchQuery] = useState("");
 
   //Refresh books on mount
@@ -56,12 +58,18 @@ const Library = () => {
       alert(`File is ${mb}MB. Max upload is 10MB right now.`);
       setIsUploading(false);
       setUploadProgress(0);
+      setShowCompressionInfo(false);
+      setUploadStep("uploading");
       try {
         event.target.value = "";
       } catch {}
       return;
     }
 
+    setShowCompressionInfo(isPdf && selectedFile.size > 10 * 1024 * 1024);
+    setUploadStep(
+      isPdf && selectedFile.size > 10 * 1024 * 1024 ? "compressing" : "uploading",
+    );
     setIsUploading(true);
     setFileName(selectedFile.name);
     setUploadProgress(0);
@@ -108,6 +116,7 @@ const Library = () => {
 
       let uploadFile = file;
       if (file.size > 10 * 1024 * 1024) {
+        setUploadStep("compressing");
         setUploadProgress(20);
         const optimizedBlob = await optimizePdfLossy(
           pdf,
@@ -126,6 +135,8 @@ const Library = () => {
           type: "application/pdf",
           lastModified: Date.now(),
         });
+
+        setUploadStep("uploading");
       }
 
       await pdf.destroy();
@@ -156,6 +167,8 @@ const Library = () => {
       setTimeout(() => {
         setIsUploading(false);
         setUploadProgress(0);
+        setShowCompressionInfo(false);
+        setUploadStep("uploading");
       }, 500);
     } catch (error) {
       console.error("PDF upload failed:", error);
@@ -167,6 +180,8 @@ const Library = () => {
       const details = serverMsg || error?.message || "";
       alert(`Failed to upload pdf file${details ? `: ${details}` : ""}`);
       setIsUploading(false);
+      setShowCompressionInfo(false);
+      setUploadStep("uploading");
     }
   };
 
@@ -319,7 +334,30 @@ const Library = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 flex flex-col justify-center items-center">
             <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-700 text-[16px]">Uploading book...</p>
+            {showCompressionInfo ? (
+              <div className="flex flex-col items-center gap-1">
+                <p
+                  className={`text-[16px] ${
+                    uploadStep === "compressing"
+                      ? "text-gray-800 font-medium"
+                      : "text-gray-500"
+                  }`}
+                >
+                  Compressing file....
+                </p>
+                <p
+                  className={`text-[16px] ${
+                    uploadStep === "uploading"
+                      ? "text-gray-800 font-medium"
+                      : "text-gray-400"
+                  }`}
+                >
+                  Uploading book....
+                </p>
+              </div>
+            ) : (
+              <p className="text-gray-700 text-[16px]">Uploading book...</p>
+            )}
             {/* Progress Bar */}
             <div className="w-25 bg-gray-200 rounded-full h-2 mt-2">
               <div
