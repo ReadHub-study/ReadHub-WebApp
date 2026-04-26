@@ -24,15 +24,21 @@ const Home = () => {
   const [image, setImage] = useState(null);
   const [stats, setStats] = useState(null);
 
+  const [isFetchingUserInfo, setIsFetchingUserInfo] = useState(false)
+
   // for fetching the user details so that it displays the username
   useEffect(() => {
     const fetchUserProfile = async () => {
+
+      setIsFetchingUserInfo(true);
       try {
         const { data } = await axiosConfig.get(apiEndpoints.USER_PROFILE);
         setUser(data.user);
         setImage(data.user.profilePicture);
       } catch (error) {
         console.error("Error fetching user profile:", error);
+      } finally{
+        setIsFetchingUserInfo(false)
       }
     };
     fetchUserProfile();
