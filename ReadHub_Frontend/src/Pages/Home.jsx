@@ -5,6 +5,7 @@ import { useFiles } from "../Context/FileContext";
 import { useEffect } from "react";
 import { apiEndpoints } from "../Util/apiEndpoints";
 import axiosConfig from "../Util/axiosConfig";
+import LoadingContCard from "../Components/LoadingContCard";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -87,7 +88,83 @@ const Home = () => {
   const filtered = filterBooks(files);
 
   return (
-    <div className="pb-30">
+    <>
+    
+    {isFetchingUserInfo ? <div><div className="pb-30">
+      
+      <div className="flex pt-13 pb-[26px] justify-between items-center px-[16px]">
+        <div className="flex flex-row items-center">
+          <span className="flex h-[46px] w-[46px] bg-[#C4C4C4] rounded-full justify-center items-center animate-pulse">
+           
+          </span>
+          <span className="flex flex-col pl-1 w-fit">
+            <p className="bg-[#D9D9D9] h-3 animate-pulse rounded-[3px]">
+            </p>
+            <p className="w-20 mt-1 h-[17px] bg-[#D9D9D9] animate-pulse rounded-[3px]">
+            </p>
+          </span>
+        </div>
+        <div>
+          <div
+            className="w-40 h-[36px] bg-[#E6E6E6] animate-pulse rounded-full flex justify-center items-center px-3 sm:px-[24px] relative overflow-hidden"
+          >
+      
+          </div>
+        </div>
+      </div>
+
+      <div className="px-[16px] pb-[26px] xsm:text-[15px]">
+        <div className="bg-[#E6E6E6] animate-pulse min-h-[177px] rounded-[20px] relative overflow-hidden text-white px-[16px] py-[23px] flex flex-col justify-between">
+          <span className="flex h-[100px] w-[100px] bg-white/20 rounded-full absolute left-72 top-[-30px]"></span>
+          <span className="flex h-[100px] w-[100px] bg-white/20 rounded-full absolute top-30 left-[-40px]"></span>
+        </div>
+      </div>
+
+      <div className="flex justify-between px-[16px] pb-5">
+        <div>
+          <div className="bg-[#E6E6E6] animate-pulse w-[79px] h-[80px] rounded-[15.89px] flex flex-col justify-center items-center">
+            
+          </div>
+        </div>
+
+           <div>
+          <div className="bg-[#E6E6E6] animate-pulse w-[79px] h-[80px] rounded-[15.89px] flex flex-col justify-center items-center">
+            
+          </div>
+        </div>
+
+           <div>
+          <div className="bg-[#E6E6E6] animate-pulse w-[79px] h-[80px] rounded-[15.89px] flex flex-col justify-center items-center">
+            
+          </div>
+        </div>
+           <div>
+          <div className="bg-[#E6E6E6] animate-pulse w-[79px] h-[80px] rounded-[15.89px] flex flex-col justify-center items-center">
+            
+          </div>
+        </div>
+      </div>
+
+      <div className="px-[16px] pb-10">
+        <div className="bg-[#fff] px-[16px] min-h-[133px] rounded-[20px] py-[20px] flex flex-col justify-between ">
+          <p className="bg-[#E6E6E6] animate-pulse w-30 h-[18px] rounded-[3px]"></p>
+          <p className="bg-[#E6E6E6] animate-pulse w-40 h-[18px] leading-4 rounded-[3px]">
+          </p>
+          <p className="bg-[#E6E6E6] animate-pulse w-25 h-[18px] rounded-[3px]"></p>
+        </div>
+      </div>
+
+          <div className="px-4">
+            <div className="font-medium mb-5 bg-[#D9D9D9] animate-pulse h-[20px] w-40 rounded-[3px]"></div>
+            <LoadingContCard/>
+          </div>
+  
+    </div></div> 
+    
+    
+    
+    
+    : <div className="pb-30">
       <style>{`
         @media (prefers-reduced-motion: reduce) {
           .rh-streak-glow,
@@ -289,12 +366,9 @@ const Home = () => {
             </p>
           </div>
         )
-      ) : (
-        <div className="w-full flex justify-center items-center">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-    </div>
+      ) : <LoadingContCard/>}
+    </div>}
+    </>
   );
 };
 
