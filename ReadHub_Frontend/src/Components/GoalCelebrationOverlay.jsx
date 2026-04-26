@@ -4,7 +4,7 @@ const COLORS = ["#3B82F6", "#60A5FA", "#F59E0B", "#22C55E", "#A855F7"];
 
 export default function GoalCelebrationOverlay({
   open,
-  durationMs = 2000,
+  durationMs = 5000,
   onDone,
 }) {
   const pieces = useMemo(() => {

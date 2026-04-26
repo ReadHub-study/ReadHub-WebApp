@@ -8,6 +8,7 @@ import { useFiles } from "../Context/FileContext";
 import Epub from "epubjs";
 
 import { extractPdfCover, extractEpubCover } from "../Utils/coverExtractor";
+import { optimizePdfLossy } from "../Utils/pdfLossyOptimize";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -33,6 +34,8 @@ const Library = () => {
   const [activeFilter, setActiveFilter] = useState("All books");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showCompressionInfo, setShowCompressionInfo] = useState(false);
+  const [uploadStep, setUploadStep] = useState("uploading"); // 'compressing' | 'uploading'
   const [searchQuery, setSearchQuery] = useState("");
 
   //Refresh books on mount
@@ -45,9 +48,34 @@ const Library = () => {
 
     if (!selectedFile) return;
 
+    const isPdf =
+      selectedFile.type === "application/pdf" ||
+      selectedFile.name.toLowerCase().endsWith(".pdf");
+
+    // Cloudinary upload limit is 10MB. For PDFs, we allow a lossy optimization pass.
+    if (!isPdf && selectedFile.size > 10 * 1024 * 1024) {
+      const mb = (selectedFile.size / (1024 * 1024)).toFixed(1);
+      alert(`File is ${mb}MB. Max upload is 10MB right now.`);
+      setIsUploading(false);
+      setUploadProgress(0);
+      setShowCompressionInfo(false);
+      setUploadStep("uploading");
+      try {
+        event.target.value = "";
+      } catch {}
+      return;
+    }
+
+    setShowCompressionInfo(isPdf && selectedFile.size > 10 * 1024 * 1024);
+    setUploadStep(
+      isPdf && selectedFile.size > 10 * 1024 * 1024 ? "compressing" : "uploading",
+    );
     setIsUploading(true);
     setFileName(selectedFile.name);
     setUploadProgress(0);
+
+    // Note: true “quality-preserving compression” to <10MB isn’t reliably possible for PDFs/EPUBs.
+    // Note: Cloudinary currently limits uploads to 10MB on this plan (PDFs > 10MB are lossy-optimized before upload).
 
     if (
       selectedFile.type === "application/pdf" ||
@@ -84,6 +112,32 @@ const Library = () => {
 
       // ✅ Extract cover from buffer (you'll adjust your function)
       const coverImage = await extractPdfCover(pdf);
+      const totalPages = pdf.numPages;
+
+      let uploadFile = file;
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadStep("compressing");
+        setUploadProgress(20);
+        const optimizedBlob = await optimizePdfLossy(
+          pdf,
+          { maxBytes: 10 * 1024 * 1024 },
+          ({ pass, page, totalPages: total }) => {
+            const base = 20;
+            const span = 35;
+            const pagePct = total > 0 ? page / total : 0;
+            const passBonus = Math.min(2, Math.max(0, pass - 1)) * 0.08;
+            const pct = base + Math.round(Math.min(1, pagePct + passBonus) * span);
+            setUploadProgress((prev) => (pct > prev ? pct : prev));
+          },
+        );
+
+        uploadFile = new File([optimizedBlob], file.name, {
+          type: "application/pdf",
+          lastModified: Date.now(),
+        });
+
+        setUploadStep("uploading");
+      }
 
       await pdf.destroy();
       setUploadProgress(60);
@@ -91,23 +145,43 @@ const Library = () => {
       // give iOS a breather
       await new Promise((r) => setTimeout(r, 0));
 
-      const uploadedBook = await uploadBook(file, {
-        title: file.name.replace(".pdf", ""),
-        author: "Unknown",
-        totalPages: pdf.numPages,
-        coverImage: coverImage,
-      });
+      const uploadedBook = await uploadBook(
+        uploadFile,
+        {
+          title: file.name.replace(".pdf", ""),
+          author: "Unknown",
+          totalPages: totalPages,
+          coverImage: coverImage,
+        },
+        (pct) => {
+          const percent = Number(pct);
+          if (!Number.isFinite(percent)) return;
+          // Map upload progress into the "uploading" slice (60% -> 95%)
+          const mapped = 60 + Math.round((Math.min(100, Math.max(0, percent)) / 100) * 35);
+          setUploadProgress((prev) => (mapped > prev ? mapped : prev));
+        },
+      );
 
       setUploadProgress(100);
       await fetchBooks();
       setTimeout(() => {
         setIsUploading(false);
         setUploadProgress(0);
+        setShowCompressionInfo(false);
+        setUploadStep("uploading");
       }, 500);
     } catch (error) {
       console.error("PDF upload failed:", error);
-      alert("Failed to upload pdf file");
+      const serverMsg =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.response?.data?.details ||
+        "";
+      const details = serverMsg || error?.message || "";
+      alert(`Failed to upload pdf file${details ? `: ${details}` : ""}`);
       setIsUploading(false);
+      setShowCompressionInfo(false);
+      setUploadStep("uploading");
     }
   };
 
@@ -260,7 +334,30 @@ const Library = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 flex flex-col justify-center items-center">
             <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-700 text-[16px]">Uploading book...</p>
+            {showCompressionInfo ? (
+              <div className="flex flex-col items-center gap-1">
+                <p
+                  className={`text-[16px] ${
+                    uploadStep === "compressing"
+                      ? "text-gray-800 font-medium"
+                      : "text-gray-500"
+                  }`}
+                >
+                  Compressing file....
+                </p>
+                <p
+                  className={`text-[16px] ${
+                    uploadStep === "uploading"
+                      ? "text-gray-800 font-medium"
+                      : "text-gray-400"
+                  }`}
+                >
+                  Uploading book....
+                </p>
+              </div>
+            ) : (
+              <p className="text-gray-700 text-[16px]">Uploading book...</p>
+            )}
             {/* Progress Bar */}
             <div className="w-25 bg-gray-200 rounded-full h-2 mt-2">
               <div

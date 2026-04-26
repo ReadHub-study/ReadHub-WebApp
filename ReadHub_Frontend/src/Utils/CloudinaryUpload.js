@@ -5,6 +5,18 @@ import { backendApi } from "../services/api";
  * Upload file to cloudinary using signed upload
  */
 
+// Cloudinary plan limit (current project): 10MB per upload for raw files.
+// This limit is enforced by Cloudinary and cannot be bypassed without upgrading the plan
+// or using a different storage provider.
+const MAX_CLOUDINARY_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
+
+const formatBytes = (bytes) => {
+  const b = Number(bytes || 0);
+  if (!Number.isFinite(b) || b <= 0) return "0B";
+  const mb = b / (1024 * 1024);
+  return `${mb.toFixed(mb >= 10 ? 0 : 1)}MB`;
+};
+
 export const uploadToCloudinary = async (
   file,
   folder = "documents",
@@ -12,6 +24,12 @@ export const uploadToCloudinary = async (
   onProgress = null,
 ) => {
   try {
+    if (file?.size && file.size > MAX_CLOUDINARY_UPLOAD_BYTES) {
+      throw new Error(
+        `File is ${formatBytes(file.size)}. This project’s current Cloudinary upload limit is ${formatBytes(MAX_CLOUDINARY_UPLOAD_BYTES)}. Please upload a smaller file or upgrade the Cloudinary plan.`,
+      );
+    }
+
     const signatureData = await backendApi.getCloudinarySignature();
 
     const {
@@ -26,6 +44,8 @@ export const uploadToCloudinary = async (
 
     console.log("Uploading file to Cloudinary...");
 
+    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+
     // Create form data for Cloudinary
     const formData = new FormData();
     formData.append("file", file);
@@ -38,15 +58,13 @@ export const uploadToCloudinary = async (
 
     console.log("FormData:", Object.fromEntries(formData.entries()));
 
-    // Upload directly to Cloudinary
-    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
-
     const response = await axios.post(cloudinaryUrl, formData, {
       onUploadProgress: (ProgressEvent) => {
         if (onProgress && ProgressEvent.total) {
           const percent = Math.round(
-            (ProgressEvent.loaded / ProgressEvent.total) * onProgress(percent),
+            (ProgressEvent.loaded / ProgressEvent.total) * 100,
           );
+          onProgress(percent);
         }
       },
     });

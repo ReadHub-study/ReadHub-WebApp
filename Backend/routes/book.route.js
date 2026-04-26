@@ -1,4 +1,6 @@
 import express from 'express'
+import multer from 'multer'
+import os from 'os'
 import {
   uploadBook,
   deleteBook,
@@ -9,10 +11,15 @@ import {
   endReading,
   getStatistics,
   updateDailyGoal,
+  uploadBookFile,
 } from '../controllers/book.controller.js'
 import { authenticate } from '../middlewares/auth.middleware.js'
 
 const router = express.Router()
+const upload = multer({
+  dest: os.tmpdir(),
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+})
 
 /**
  * @swagger
@@ -55,6 +62,17 @@ const router = express.Router()
  *         description: Unauthorized
  */
 router.post('/upload', authenticate, uploadBook)
+// Backend-mediated upload for large files (avoids browser/CORS limitations)
+router.post('/upload-file', authenticate, (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (!err) return next()
+    return res.status(400).json({
+      message: 'File upload failed',
+      error: err.message,
+      code: err.code,
+    })
+  })
+}, uploadBookFile)
 /**
  * @swagger
  * /api/book:

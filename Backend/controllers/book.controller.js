@@ -3,6 +3,7 @@ import Book from '../models/Books.js'
 import ReadingSession from '../models/readingSession.js'
 import UserStats from '../models/userStatistics.js'
 import Notes from './../models/Notes.js'
+import fs from 'fs/promises'
 
 export const generatePdfSignature = async (req, res) => {
   try {
@@ -424,6 +425,43 @@ export const updateDailyGoal = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       message: 'Error updating daily goal',
+      error: error.message,
+    })
+  }
+}
+
+// Upload a book file via backend (useful for large files where direct-to-Cloudinary browser upload may fail)
+export const uploadBookFile = async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' })
+    if (!req.file?.path) {
+      return res.status(400).json({ message: 'No file uploaded' })
+    }
+
+    const filePath = req.file.path
+
+    try {
+      const result = await cloudinary.uploader.upload_large(filePath, {
+        resource_type: 'raw',
+        folder: 'documents',
+        use_filename: true,
+        unique_filename: true,
+      })
+
+      return res.status(200).json({
+        url: result.secure_url,
+        publicId: result.public_id,
+        resourceType: result.resource_type,
+        format: result.format,
+        bytes: result.bytes,
+      })
+    } finally {
+      // Best-effort cleanup of temp file
+      fs.unlink(filePath).catch(() => {})
+    }
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Error uploading file',
       error: error.message,
     })
   }
