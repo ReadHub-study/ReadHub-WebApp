@@ -9,6 +9,7 @@ import Epub from "epubjs";
 
 import { extractPdfCover, extractEpubCover } from "../Utils/coverExtractor";
 import { optimizePdfLossy } from "../Utils/pdfLossyOptimize";
+import LoadingContCard from "../Components/LoadingContCard";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -472,9 +473,13 @@ const Library = () => {
                 );
               })
             ) : (
-              <div className="w-full h-50 flex justify-center items-center">
-                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
+            <div>
+              <LoadingContCard/>
+              <LoadingContCard/>
+              <LoadingContCard/>
+              <LoadingContCard/>
+              <LoadingContCard/>
+            </div>
             )}
           </div>
         ) : (
