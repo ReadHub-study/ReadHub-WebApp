@@ -39,9 +39,18 @@ const Library = () => {
   const [uploadStep, setUploadStep] = useState("uploading"); // 'compressing' | 'uploading'
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [isFetchingBooks, setIsFetchingBooks] = useState(false);
+
   //Refresh books on mount
   useEffect(() => {
-    fetchBooks();
+    try {
+      setIsFetchingBooks(true);
+      fetchBooks()
+    } catch (error) {
+      console.error("Error fetching books:", error);
+    } finally{
+      setIsFetchingBooks(false);
+    }
   }, [fetchBooks]);
 
   const handleFileSElect = async (event) => {
@@ -428,7 +437,7 @@ const Library = () => {
       </div>
 
       <div>
-        {files.length > 0 ? (
+        {!isFetchingBooks && files.length > 0 ? (
           <div>
             <div className="text-body_Small flex gap-4 w-full mb-8 overflow-scroll">
               <div className="flex justify-between w-200 gap-4">
@@ -445,7 +454,7 @@ const Library = () => {
                 ))}
               </div>
             </div>
-            {!loading ? (
+            {!isFetchingBooks ? (
               filtered?.map((book) => {
                 const page = currentPage[book._id] ?? book.lastPageRead ?? 0;
 
