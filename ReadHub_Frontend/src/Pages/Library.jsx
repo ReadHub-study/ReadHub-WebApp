@@ -44,7 +44,7 @@ const Library = () => {
   //Refresh books on mount
   useEffect(() => {
     try {
-      setIsFetchingBooks(true);
+      setIsFetchingBooks(true),
       fetchBooks()
     } catch (error) {
       console.error("Error fetching books:", error);
@@ -337,7 +337,7 @@ const Library = () => {
     if (!confirm) return;
     await deleteBook(bookId);
   };
-
+console.log(files)
   return (
     <div className="px-[16px] pt-[40px] overflow-hidden pb-15">
       {isUploading && (
@@ -437,7 +437,7 @@ const Library = () => {
       </div>
 
       <div>
-        {!isFetchingBooks && files.length > 0 ? (
+        {files.length > 0 ? (
           <div>
             <div className="text-body_Small flex gap-4 w-full mb-8 overflow-scroll">
               <div className="flex justify-between w-200 gap-4">
