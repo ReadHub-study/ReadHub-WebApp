@@ -42,16 +42,19 @@ const Library = () => {
   const [isFetchingBooks, setIsFetchingBooks] = useState(false);
 
   //Refresh books on mount
-  useEffect(() => {
+useEffect(() => {
+  const fetch = async () => {
     try {
-      setIsFetchingBooks(true),
-      fetchBooks()
+      setIsFetchingBooks(true);
+      await fetchBooks();
     } catch (error) {
       console.error("Error fetching books:", error);
-    } finally{
+    } finally {
       setIsFetchingBooks(false);
     }
-  }, [fetchBooks]);
+  };
+  fetch();
+}, [fetchBooks]);
 
   const handleFileSElect = async (event) => {
     const selectedFile = event.target.files[0];
@@ -337,7 +340,7 @@ const Library = () => {
     if (!confirm) return;
     await deleteBook(bookId);
   };
-console.log(files)
+console.log(isFetchingBooks)
   return (
     <div className="px-[16px] pt-[40px] overflow-hidden pb-15">
       {isUploading && (
@@ -437,65 +440,54 @@ console.log(files)
       </div>
 
       <div>
-        {files.length > 0 ? (
-          <div>
-            <div className="text-body_Small flex gap-4 w-full mb-8 overflow-scroll">
-              <div className="flex justify-between w-200 gap-4">
-                {filters.map((f, index) => (
-                  <div
-                    key={index}
-                    onClick={() => {
-                      setActiveFilter(f);
-                    }}
-                    className={`bg-white w-[91px] h-[38px] rounded-[33px] flex justify-center items-center ${activeFilter !== f ? "text-[#4B6481]" : "text-black]"}`}
-                  >
-                    {`${f}(${filterBooks(files, f.toLocaleLowerCase()).length})`}
-                  </div>
-                ))}
-              </div>
-            </div>
-            {!isFetchingBooks ? (
-              filtered?.map((book) => {
-                const page = currentPage[book._id] ?? book.lastPageRead ?? 0;
-
-                return (
-                  <ContCard
-                    key={book._id}
-                    fileName={book.title}
-                    page={page}
-                    totalPage={book.pages}
-                    progress={getProgress(page, book.pages)}
-                    onOpen={() => {
-                      book.fileUrl.endsWith(".pdf")
-                        ? openPdf(book)
-                        : openEpub(book);
-                    }}
-                    progPercent={getProgress(page, book.pages) + "%"}
-                    continueRead={
-                      page < 1 ? "Start Reading" : "Continue Reading"
-                    }
-                    file={book}
-                    coverImage={book.coverImageUrl}
-                    onDelete={() => handleDelete(book._id)}
-                    showDelete={true}
-                  />
-                );
-              })
-            ) : (
-            <div>
-              <LoadingContCard/>
-              <LoadingContCard/>
-              <LoadingContCard/>
-              <LoadingContCard/>
-              <LoadingContCard/>
-            </div>
-            )}
+        {!isFetchingBooks && files.length > 0 ? (
+  <div>
+    <div className="text-body_Small flex gap-4 w-full mb-8 overflow-scroll">
+      <div className="flex justify-between w-200 gap-4">
+        {filters.map((f, index) => (
+          <div
+            key={index}
+            onClick={() => setActiveFilter(f)}
+            className={`bg-white w-[91px] h-[38px] rounded-[33px] flex justify-center items-center ${activeFilter !== f ? "text-[#4B6481]" : "text-black"}`}
+          >
+            {`${f}(${filterBooks(files, f.toLocaleLowerCase()).length})`}
           </div>
-        ) : (
-          <div className="w-full h-100 flex justify-center items-center">
-            Let's upload some pdf files
-          </div>
-        )}
+        ))}
+      </div>
+    </div>
+    {filtered?.map((book) => {
+      const page = currentPage[book._id] ?? book.lastPageRead ?? 0;
+      return (
+        <ContCard
+          key={book._id}
+          fileName={book.title}
+          page={page}
+          totalPage={book.pages}
+          progress={getProgress(page, book.pages)}
+          onOpen={() => book.fileUrl.endsWith(".pdf") ? openPdf(book) : openEpub(book)}
+          progPercent={getProgress(page, book.pages) + "%"}
+          continueRead={page < 1 ? "Start Reading" : "Continue Reading"}
+          file={book}
+          coverImage={book.coverImageUrl}
+          onDelete={() => handleDelete(book._id)}
+          showDelete={true}
+        />
+      );
+    })}
+  </div>
+) : isFetchingBooks ? (
+  <div>
+    <LoadingContCard/>
+    <LoadingContCard/>
+    <LoadingContCard/>
+    <LoadingContCard/>
+    <LoadingContCard/>
+  </div>
+) : (
+  <div className="w-full h-100 flex justify-center items-center">
+    Let's upload some pdf files
+  </div>
+)}
       </div>
     </div>
   );
