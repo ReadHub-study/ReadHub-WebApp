@@ -345,12 +345,12 @@ const Library = () => {
               <div className="flex flex-col items-center gap-1">
                 <p
                   className={`text-[16px] ${
-                    uploadStep === 'compressing' ? 'text-gray-800 font-medium' : 'text-gray-500'
+                    uploadStep === 'compressing' ? 'text-gray-800 font-semibold' : 'text-gray-500'
                   }`}
                 >
                   Compressing your file....
                 </p>
-                <p className="text-gray-800 text-xs">
+                <p className="text-gray-800 text-center text-xs">
                   Your file is larger than 10MB. We're compressing it to make uploads faster and
                   improve your reading experience.
                 </p>
@@ -366,11 +366,13 @@ const Library = () => {
 
                 <p
                   className={`text-[16px] ${
-                    uploadStep === 'uploading' ? 'text-gray-800 font-medium' : 'text-gray-400'
+                    uploadStep === 'uploading' ? 'text-gray-600 text-xs' : 'text-gray-400'
                   }`}
                 >
                   ...almost done
                 </p>
+
+                <p className='text-gray-800 text-xs '><b>Tip:</b> You can create notes while reading your books</p>
               </div>
             ) : (
               <p className="text-gray-700 text-[16px]">Uploading book...</p>
