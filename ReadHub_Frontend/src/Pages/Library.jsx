@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from "react";
-import ContCard from "../Components/ContCard";
-import { Document, Page, pdfjs } from "react-pdf";
-import ViewPdf from "../Features/ViewPdf";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from 'react';
+import ContCard from '../Components/ContCard';
+import { Document, Page, pdfjs } from 'react-pdf';
+import ViewPdf from '../Features/ViewPdf';
+import { useNavigate } from 'react-router-dom';
 
-import { useFiles } from "../Context/FileContext";
-import Epub from "epubjs";
+import { useFiles } from '../Context/FileContext';
+import Epub from 'epubjs';
 
-import { extractPdfCover, extractEpubCover } from "../Utils/coverExtractor";
-import { optimizePdfLossy } from "../Utils/pdfLossyOptimize";
-import LoadingContCard from "../Components/LoadingContCard";
+import { extractPdfCover, extractEpubCover } from '../Utils/coverExtractor';
+import { optimizePdfLossy } from '../Utils/pdfLossyOptimize';
+import LoadingContCard from '../Components/LoadingContCard';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -30,31 +30,31 @@ const Library = () => {
   const navigate = useNavigate();
 
   const [fileType, setFileType] = useState(null);
-  const [fileName, setFileName] = useState("");
+  const [fileName, setFileName] = useState('');
 
-  const [activeFilter, setActiveFilter] = useState("All books");
+  const [activeFilter, setActiveFilter] = useState('All books');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showCompressionInfo, setShowCompressionInfo] = useState(false);
-  const [uploadStep, setUploadStep] = useState("uploading"); // 'compressing' | 'uploading'
-  const [searchQuery, setSearchQuery] = useState("");
+  const [uploadStep, setUploadStep] = useState('uploading'); // 'compressing' | 'uploading'
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [isFetchingBooks, setIsFetchingBooks] = useState(false);
 
   //Refresh books on mount
-useEffect(() => {
-  const fetch = async () => {
-    try {
-      setIsFetchingBooks(true);
-      await fetchBooks();
-    } catch (error) {
-      console.error("Error fetching books:", error);
-    } finally {
-      setIsFetchingBooks(false);
-    }
-  };
-  fetch();
-}, [fetchBooks]);
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        setIsFetchingBooks(true);
+        await fetchBooks();
+      } catch (error) {
+        console.error('Error fetching books:', error);
+      } finally {
+        setIsFetchingBooks(false);
+      }
+    };
+    fetch();
+  }, [fetchBooks]);
 
   const handleFileSElect = async (event) => {
     const selectedFile = event.target.files[0];
@@ -62,8 +62,7 @@ useEffect(() => {
     if (!selectedFile) return;
 
     const isPdf =
-      selectedFile.type === "application/pdf" ||
-      selectedFile.name.toLowerCase().endsWith(".pdf");
+      selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf');
 
     // Cloudinary upload limit is 10MB. For PDFs, we allow a lossy optimization pass.
     if (!isPdf && selectedFile.size > 10 * 1024 * 1024) {
@@ -72,17 +71,15 @@ useEffect(() => {
       setIsUploading(false);
       setUploadProgress(0);
       setShowCompressionInfo(false);
-      setUploadStep("uploading");
+      setUploadStep('uploading');
       try {
-        event.target.value = "";
+        event.target.value = '';
       } catch {}
       return;
     }
 
     setShowCompressionInfo(isPdf && selectedFile.size > 10 * 1024 * 1024);
-    setUploadStep(
-      isPdf && selectedFile.size > 10 * 1024 * 1024 ? "compressing" : "uploading",
-    );
+    setUploadStep(isPdf && selectedFile.size > 10 * 1024 * 1024 ? 'compressing' : 'uploading');
     setIsUploading(true);
     setFileName(selectedFile.name);
     setUploadProgress(0);
@@ -90,18 +87,15 @@ useEffect(() => {
     // Note: true “quality-preserving compression” to <10MB isn’t reliably possible for PDFs/EPUBs.
     // Note: Cloudinary currently limits uploads to 10MB on this plan (PDFs > 10MB are lossy-optimized before upload).
 
-    if (
-      selectedFile.type === "application/pdf" ||
-      selectedFile.name.endsWith(".pdf")
-    ) {
+    if (selectedFile.type === 'application/pdf' || selectedFile.name.endsWith('.pdf')) {
       await handlePdf(selectedFile);
     } else if (
-      selectedFile.type === "application/epub" ||
-      selectedFile.name.toLowerCase().endsWith(".epub")
+      selectedFile.type === 'application/epub' ||
+      selectedFile.name.toLowerCase().endsWith('.epub')
     ) {
       await handleEpub(selectedFile);
     } else {
-      alert("Unsupported file type. Please upload .pdf or .epub files.");
+      alert('Unsupported file type. Please upload .pdf or .epub files.');
       setIsUploading(false);
     }
   };
@@ -109,7 +103,7 @@ useEffect(() => {
   //pdf handle
 
   const handlePdf = async (file) => {
-    setFileType("pdf");
+    setFileType('pdf');
 
     try {
       setUploadProgress(10);
@@ -129,7 +123,7 @@ useEffect(() => {
 
       let uploadFile = file;
       if (file.size > 10 * 1024 * 1024) {
-        setUploadStep("compressing");
+        setUploadStep('compressing');
         setUploadProgress(20);
         const optimizedBlob = await optimizePdfLossy(
           pdf,
@@ -145,11 +139,11 @@ useEffect(() => {
         );
 
         uploadFile = new File([optimizedBlob], file.name, {
-          type: "application/pdf",
+          type: 'application/pdf',
           lastModified: Date.now(),
         });
 
-        setUploadStep("uploading");
+        setUploadStep('uploading');
       }
 
       await pdf.destroy();
@@ -161,8 +155,8 @@ useEffect(() => {
       const uploadedBook = await uploadBook(
         uploadFile,
         {
-          title: file.name.replace(".pdf", ""),
-          author: "Unknown",
+          title: file.name.replace('.pdf', ''),
+          author: 'Unknown',
           totalPages: totalPages,
           coverImage: coverImage,
         },
@@ -181,27 +175,27 @@ useEffect(() => {
         setIsUploading(false);
         setUploadProgress(0);
         setShowCompressionInfo(false);
-        setUploadStep("uploading");
+        setUploadStep('uploading');
       }, 500);
     } catch (error) {
-      console.error("PDF upload failed:", error);
+      console.error('PDF upload failed:', error);
       const serverMsg =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
         error?.response?.data?.details ||
-        "";
-      const details = serverMsg || error?.message || "";
-      alert(`Failed to upload pdf file${details ? `: ${details}` : ""}`);
+        '';
+      const details = serverMsg || error?.message || '';
+      alert(`Failed to upload pdf file${details ? `: ${details}` : ''}`);
       setIsUploading(false);
       setShowCompressionInfo(false);
-      setUploadStep("uploading");
+      setUploadStep('uploading');
     }
   };
 
   //epub handle
 
   const handleEpub = (file) => {
-    setFileType("epub");
+    setFileType('epub');
 
     try {
       const reader = new FileReader();
@@ -216,7 +210,7 @@ useEffect(() => {
         try {
           //convert to blob
 
-          const base64String = fileDataUrl.split(",")[1];
+          const base64String = fileDataUrl.split(',')[1];
           const binaryString = atob(base64String);
           const bytes = new Uint8Array(binaryString.length);
 
@@ -224,7 +218,7 @@ useEffect(() => {
             bytes[i] = binaryString.charCodeAt(i);
           }
 
-          const blob = new Blob([bytes], { type: "application/epub+zip" });
+          const blob = new Blob([bytes], { type: 'application/epub+zip' });
 
           //load book temporarily to get metadata
 
@@ -248,7 +242,7 @@ useEffect(() => {
           const fileData = {
             id: Date.now().toString(),
             name: file.name,
-            type: "epub",
+            type: 'epub',
             fileData: event.target.result, //base64
             coverImage: coverImage, // Store cover
             currentPage: 0,
@@ -256,9 +250,9 @@ useEffect(() => {
             //Epub-Specific metadata
             metadata: {
               title: metadata.title || file.name,
-              author: metadata.creator || "Unknown",
-              publisher: metadata.publisher || "",
-              language: metadata.language || "",
+              author: metadata.creator || 'Unknown',
+              publisher: metadata.publisher || '',
+              language: metadata.language || '',
 
               totalPages: totalPages,
             },
@@ -272,14 +266,14 @@ useEffect(() => {
           const fileData = {
             id: Date.now().toString(),
             name: file.name,
-            type: "epub",
+            type: 'epub',
             fileData: fileDataUrl,
             coverImage: coverImage, //  Store cover
             currentPage: 0,
             uploadedAt: new Date().toISOString(),
             metadata: {
               title: file.name,
-              author: "Unknown",
+              author: 'Unknown',
               totalPages: 0,
             },
           };
@@ -289,7 +283,7 @@ useEffect(() => {
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      alert("Failed to read epub file");
+      alert('Failed to read epub file');
     }
   };
 
@@ -303,18 +297,18 @@ useEffect(() => {
     navigate(`/viewepub/${file.id}`);
   };
 
-  const filters = ["All books", "Reading", "Completed"];
+  const filters = ['All books', 'Reading', 'Completed'];
 
   function filterBooks(books, filter) {
     let filtered = books;
 
     // Filter by status
-    if (filter === "reading") {
+    if (filter === 'reading') {
       filtered = books.filter((b) => {
         const page = currentPage[b._id] ?? b.lastPageRead ?? 0;
         return page > 0 && page < b.pages;
       });
-    } else if (filter === "completed") {
+    } else if (filter === 'completed') {
       filtered = books.filter((b) => {
         const page = currentPage[b._id] ?? b.lastPageRead ?? 0;
         return page >= b.pages;
@@ -336,11 +330,11 @@ useEffect(() => {
   const filtered = filterBooks(files, activeFilter.toLowerCase());
 
   const handleDelete = async (bookId) => {
-    const confirm = window.confirm("Delete this book ?");
+    const confirm = window.confirm('Delete this book ?');
     if (!confirm) return;
     await deleteBook(bookId);
   };
-console.log(isFetchingBooks)
+  console.log(isFetchingBooks);
   return (
     <div className="px-[16px] pt-[40px] overflow-hidden pb-15">
       {isUploading && (
@@ -351,36 +345,36 @@ console.log(isFetchingBooks)
               <div className="flex flex-col items-center gap-1">
                 <p
                   className={`text-[16px] ${
-                    uploadStep === "compressing"
-                      ? "text-gray-800 font-medium"
-                      : "text-gray-500"
+                    uploadStep === 'compressing' ? 'text-gray-800 font-medium' : 'text-gray-500'
                   }`}
                 >
-                  Compressing file....
+                  Compressing your file....
                 </p>
+                <p className="text-gray-800 text-xs">
+                  Your file is larger than 10MB. We're compressing it to make uploads faster and
+                  improve your reading experience.
+                </p>
+
+                {/* Progress Bar */}
+                <div className="w-25 bg-gray-200 rounded-full h-2 mt-2">
+                  <div
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <p className="text-sm text-gray-500 text-center mt-1">{uploadProgress}%</p>
+
                 <p
                   className={`text-[16px] ${
-                    uploadStep === "uploading"
-                      ? "text-gray-800 font-medium"
-                      : "text-gray-400"
+                    uploadStep === 'uploading' ? 'text-gray-800 font-medium' : 'text-gray-400'
                   }`}
                 >
-                  Uploading book....
+                  ...almost done
                 </p>
               </div>
             ) : (
               <p className="text-gray-700 text-[16px]">Uploading book...</p>
             )}
-            {/* Progress Bar */}
-            <div className="w-25 bg-gray-200 rounded-full h-2 mt-2">
-              <div
-                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
-            <p className="text-sm text-gray-500 text-center mt-1">
-              {uploadProgress}%
-            </p>
           </div>
         </div>
       )}
@@ -397,7 +391,7 @@ console.log(isFetchingBooks)
             id="fileselect2"
             onChange={handleFileSElect}
             className="hidden"
-          />{" "}
+          />{' '}
           <svg
             className="w-[24px] h-[24px]"
             xmlns="http://www.w3.org/2000/svg"
@@ -414,7 +408,7 @@ console.log(isFetchingBooks)
         <input
           type="text"
           placeholder="Search books..."
-          style={{ backgroundColor: "white", border: "0px" }}
+          style={{ backgroundColor: 'white', border: '0px' }}
         />
       </div>
 
@@ -441,54 +435,53 @@ console.log(isFetchingBooks)
 
       <div>
         {!isFetchingBooks && files.length > 0 ? (
-  <div>
-    <div className="text-body_Small flex gap-4 w-full mb-8 overflow-scroll">
-      <div className="flex justify-between w-200 gap-4">
-        {filters.map((f, index) => (
-          <div
-            key={index}
-            onClick={() => setActiveFilter(f)}
-            className={`bg-white w-[91px] h-[38px] rounded-[33px] flex justify-center items-center ${activeFilter !== f ? "text-[#4B6481]" : "text-black"}`}
-          >
-            {`${f}(${filterBooks(files, f.toLocaleLowerCase()).length})`}
+          <div>
+            <div className="text-body_Small flex gap-4 w-full mb-8 overflow-scroll">
+              <div className="flex justify-between w-200 gap-4">
+                {filters.map((f, index) => (
+                  <div
+                    key={index}
+                    onClick={() => setActiveFilter(f)}
+                    className={`bg-white w-[91px] h-[38px] rounded-[33px] flex justify-center items-center ${activeFilter !== f ? 'text-[#4B6481]' : 'text-black'}`}
+                  >
+                    {`${f}(${filterBooks(files, f.toLocaleLowerCase()).length})`}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {filtered?.map((book) => {
+              const page = currentPage[book._id] ?? book.lastPageRead ?? 0;
+              return (
+                <ContCard
+                  key={book._id}
+                  fileName={book.title}
+                  page={page}
+                  totalPage={book.pages}
+                  progress={getProgress(page, book.pages)}
+                  onOpen={() => (book.fileUrl.endsWith('.pdf') ? openPdf(book) : openEpub(book))}
+                  progPercent={getProgress(page, book.pages) + '%'}
+                  continueRead={page < 1 ? 'Start Reading' : 'Continue Reading'}
+                  file={book}
+                  coverImage={book.coverImageUrl}
+                  onDelete={() => handleDelete(book._id)}
+                  showDelete={true}
+                />
+              );
+            })}
           </div>
-        ))}
-      </div>
-    </div>
-    {filtered?.map((book) => {
-      const page = currentPage[book._id] ?? book.lastPageRead ?? 0;
-      return (
-        <ContCard
-          key={book._id}
-          fileName={book.title}
-          page={page}
-          totalPage={book.pages}
-          progress={getProgress(page, book.pages)}
-          onOpen={() => book.fileUrl.endsWith(".pdf") ? openPdf(book) : openEpub(book)}
-          progPercent={getProgress(page, book.pages) + "%"}
-          continueRead={page < 1 ? "Start Reading" : "Continue Reading"}
-          file={book}
-          coverImage={book.coverImageUrl}
-          onDelete={() => handleDelete(book._id)}
-          showDelete={true}
-        />
-      );
-    })}
-  </div>
-) : isFetchingBooks ? (
-  <div>
-    <LoadingContCard/>
-    <LoadingContCard/>
-    <LoadingContCard/>
-    <LoadingContCard/>
-    <LoadingContCard/>
-  </div>
-) : (
-  <div className="w-full h-100 flex justify-center items-center">
-    Let's upload some pdf files
-  </div>
-)}
-
+        ) : isFetchingBooks ? (
+          <div>
+            <LoadingContCard />
+            <LoadingContCard />
+            <LoadingContCard />
+            <LoadingContCard />
+            <LoadingContCard />
+          </div>
+        ) : (
+          <div className="w-full h-100 flex justify-center items-center">
+            Let's upload some pdf files
+          </div>
+        )}
       </div>
     </div>
   );
