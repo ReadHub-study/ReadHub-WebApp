@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ContCard from '../Components/ContCard';
 import { Document, Page, pdfjs } from 'react-pdf';
 import ViewPdf from '../Features/ViewPdf';
@@ -37,7 +37,10 @@ const Library = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showCompressionInfo, setShowCompressionInfo] = useState(false);
   const [uploadStep, setUploadStep] = useState('uploading'); // 'compressing' | 'uploading'
+  const [showCompressionSuccess, setShowCompressionSuccess] = useState(false);
+  const [savedStoragePct, setSavedStoragePct] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const compressionSuccessTimerRef = useRef(null);
 
   const [isFetchingBooks, setIsFetchingBooks] = useState(false);
 
@@ -122,6 +125,8 @@ const Library = () => {
       const totalPages = pdf.numPages;
 
       let uploadFile = file;
+      let didCompress = false;
+      let compressedBytes = file.size;
       if (file.size > 10 * 1024 * 1024) {
         setUploadStep('compressing');
         setUploadProgress(20);
@@ -143,6 +148,8 @@ const Library = () => {
           lastModified: Date.now(),
         });
 
+        didCompress = true;
+        compressedBytes = optimizedBlob.size;
         setUploadStep('uploading');
       }
 
@@ -171,11 +178,34 @@ const Library = () => {
 
       setUploadProgress(100);
       await fetchBooks();
+
+      if (didCompress) {
+        const original = Number(file.size || 0);
+        const compressed = Number(compressedBytes || 0);
+        const pct =
+          original > 0 && compressed > 0
+            ? Math.max(
+                0,
+                Math.min(99, Math.round((1 - compressed / original) * 100)),
+              )
+            : 0;
+        setSavedStoragePct(pct);
+      }
       setTimeout(() => {
         setIsUploading(false);
         setUploadProgress(0);
         setShowCompressionInfo(false);
         setUploadStep('uploading');
+
+        if (didCompress) {
+          setShowCompressionSuccess(true);
+          if (compressionSuccessTimerRef.current) {
+            clearTimeout(compressionSuccessTimerRef.current);
+          }
+          compressionSuccessTimerRef.current = setTimeout(() => {
+            setShowCompressionSuccess(false);
+          }, 3000);
+        }
       }, 500);
     } catch (error) {
       console.error('PDF upload failed:', error);
@@ -189,6 +219,7 @@ const Library = () => {
       setIsUploading(false);
       setShowCompressionInfo(false);
       setUploadStep('uploading');
+      setShowCompressionSuccess(false);
     }
   };
 
@@ -377,6 +408,57 @@ const Library = () => {
             ) : (
               <p className="text-gray-700 text-[16px]">Uploading book...</p>
             )}
+          </div>
+        </div>
+      )}
+
+      {showCompressionSuccess && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-7 flex flex-col justify-center items-center gap-3 shadow-xl w-[320px]">
+            <p className="text-gray-900 text-[16px] font-semibold">
+              File compressed successfully
+            </p>
+
+            <svg
+              width="72"
+              height="72"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                d="M4.5 12a7.5 7.5 0 1115 0 7.5 7.5 0 01-15 0z"
+                fill="#EFF6FF"
+              />
+              <path
+                d="M7 9.2l-1.2-1.2M17 9.2l1.2-1.2M12 7V5.5"
+                stroke="#F59E0B"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+              <path
+                d="M8.2 11.1l3.8-2.2 3.8 2.2-3.8 2.2-3.8-2.2z"
+                fill="#60A5FA"
+              />
+              <path
+                d="M8.2 13.2l3.8 2.2 3.8-2.2"
+                stroke="#2563EB"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M6 3v3M3 6h3M18 3v3M18 6h3M6 21v-3M3 18h3M18 21v-3M18 18h3"
+                stroke="#2563EB"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+
+            <p className="text-gray-700 text-[15px]">
+              Saved {savedStoragePct}% storage
+            </p>
           </div>
         </div>
       )}
