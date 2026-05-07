@@ -51,6 +51,7 @@ import trendingbook1 from "../assets/trendingbook1.png"
 import trendingbook2 from "../assets/trendingbook2.png"
 import trendingbook3 from "../assets/trendingbook3.png"
 import playButtonIcon from "../assets/playButton.png"
+import confettiIcon from "../assets/confetti.png"
 
 
 export const ReadHubImages = {
@@ -107,4 +108,5 @@ export const ReadHubImages = {
     trendingbook2,
     trendingbook3,
     playButtonIcon,
+    confettiIcon,
 }

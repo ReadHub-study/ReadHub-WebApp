@@ -10,6 +10,7 @@ import Epub from 'epubjs';
 import { extractPdfCover, extractEpubCover } from '../Utils/coverExtractor';
 import { optimizePdfLossy } from '../Utils/pdfLossyOptimize';
 import LoadingContCard from '../Components/LoadingContCard';
+import { ReadHubImages } from '../assets/asset';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -419,42 +420,7 @@ const Library = () => {
               File compressed successfully
             </p>
 
-            <svg
-              width="72"
-              height="72"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M4.5 12a7.5 7.5 0 1115 0 7.5 7.5 0 01-15 0z"
-                fill="#EFF6FF"
-              />
-              <path
-                d="M7 9.2l-1.2-1.2M17 9.2l1.2-1.2M12 7V5.5"
-                stroke="#F59E0B"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-              <path
-                d="M8.2 11.1l3.8-2.2 3.8 2.2-3.8 2.2-3.8-2.2z"
-                fill="#60A5FA"
-              />
-              <path
-                d="M8.2 13.2l3.8 2.2 3.8-2.2"
-                stroke="#2563EB"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M6 3v3M3 6h3M18 3v3M18 6h3M6 21v-3M3 18h3M18 21v-3M18 18h3"
-                stroke="#2563EB"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
+            <img src={ReadHubImages.confettiIcon} alt="" />
 
             <p className="text-gray-700 text-[15px]">
               Saved {savedStoragePct}% storage
