@@ -370,7 +370,7 @@ const Library = () => {
   return (
     <div className="px-[16px] pt-[40px] overflow-hidden pb-15">
       {isUploading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center px-3 lg:px-6 justify-center z-50">
           <div className="bg-white rounded-lg p-6 flex flex-col justify-center items-center">
             <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             {showCompressionInfo ? (
