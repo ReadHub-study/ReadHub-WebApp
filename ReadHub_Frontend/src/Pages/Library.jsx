@@ -397,7 +397,7 @@ const Library = () => {
                 <p className="text-sm text-gray-500 text-center mt-1">{uploadProgress}%</p>
 
                 <p
-                  className={`text-[16px] ${
+                  className={`text-[12px] ${
                     uploadStep === 'uploading' ? 'text-gray-600 text-xs' : 'text-gray-400'
                   }`}
                 >

@@ -73,14 +73,14 @@ const Explore = () => {
             <span className="text-lg font-medium">Reading Tips</span>
           </div>
           <div className="cards flex flex-col gap-5 items-start justify-start">
-            <div className="card bg-white w-full p-4 rounded-xl flex justify-start items-start flex-row gap-4">
+            <div className="card bg-white w-full p-4 rounded-xl flex justify-start items-start flex-row gap-4 border-gray-200 border-2">
               <div className="p-3 rounded-lg flex justify-center items-center bg-blue-100">
                 <span>
                   <img src={ReadHubImages.timerIcon} alt="icon" />
                 </span>
               </div>
               <div className="flex flex-col gap-0.5 justify-start items-start">
-                <span className="text-lg font-medium">
+                <span className="text-lg font-medium text-gray-800">
                   Set a Reading Schedule
                 </span>
                 <span className="text-sm font-normal text-gray-500">
@@ -88,27 +88,27 @@ const Explore = () => {
                 </span>
               </div>
             </div>
-            <div className="card bg-white w-full p-4 rounded-xl flex justify-start items-start flex-row gap-4">
+            <div className="card bg-white w-full p-4 rounded-xl flex justify-start items-start flex-row gap-4 border-gray-200 border-2">
               <div className="p-3 rounded-lg flex justify-center items-center bg-blue-100">
                 <span>
-                  <img src={ReadHubImages.timeIcon} alt="icon" />
+                  <img src={ReadHubImages.blueCirclesIcon} alt="icon" />
                 </span>
               </div>
               <div className="flex flex-col gap-0.5 justify-start items-start">
-                <span className="text-lg font-medium">Set Daily Goals</span>
+                <span className="text-lg font-medium text-gray-800">Set Daily Goals</span>
                 <span className="text-sm font-normal text-gray-500">
                   Start with 20minutes and gradually increase
                 </span>
               </div>
             </div>
-            <div className="card bg-white w-full p-4 rounded-xl flex justify-start items-start flex-row gap-4">
+            <div className="card bg-white w-full p-4 rounded-xl flex justify-start items-start flex-row gap-4 border-gray-200 border-2 mb-20">
               <div className="p-3 rounded-lg flex justify-center items-center bg-blue-200">
                 <span>
-                  <img src={ReadHubImages.timerIcon} alt="icon" />
+                  <img src={ReadHubImages.blueFlashIcon} alt="icon" />
                 </span>
               </div>
               <div className="flex flex-col gap-0.5 justify-start items-start">
-                <span className="text-lg font-medium">Use Focus Mode</span>
+                <span className="text-lg font-medium text-gray-800">Use Focus Mode</span>
                 <span className="text-sm font-normal text-gray-500">
                   Eliminate distraction with our readlock feature
                 </span>

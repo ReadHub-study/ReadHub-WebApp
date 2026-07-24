@@ -52,6 +52,8 @@ import trendingbook2 from "../assets/trendingbook2.png"
 import trendingbook3 from "../assets/trendingbook3.png"
 import playButtonIcon from "../assets/playButton.png"
 import confettiIcon from "../assets/confetti.png"
+import blueCirclesIcon from "../assets/blueCircles.svg"
+import blueFlashIcon from "../assets/blueFlashIcon.svg"
 
 
 export const ReadHubImages = {
@@ -109,4 +111,6 @@ export const ReadHubImages = {
     trendingbook3,
     playButtonIcon,
     confettiIcon,
+    blueCirclesIcon,
+    blueFlashIcon,
 }
