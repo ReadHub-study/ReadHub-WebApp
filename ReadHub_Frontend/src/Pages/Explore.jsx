@@ -2,12 +2,90 @@ import React, { useState } from "react";
 import { ReadHubImages } from "../assets/asset";
 import { useNavigate } from "react-router-dom";
 import { LuSearch } from "react-icons/lu";
-import { IoClose } from "react-icons/io5";
+import { IoClose, IoDownloadOutline } from "react-icons/io5";
 
 const Explore = () => {
   const navigate = useNavigate();
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+
+  const getBestCoverUrl = (formats = {}) => {
+    const imageFormat = Object.entries(formats).find(([mimeType]) =>
+      mimeType.toLowerCase().includes("image/")
+    );
+
+    return imageFormat ? imageFormat[1] : null;
+  };
+
+  const getBestDownloadUrl = (formats = {}) => {
+    const preferredMimeTypes = [
+      "application/pdf",
+      "application/epub+zip",
+      "text/plain",
+      "text/html",
+      "application/xhtml+xml",
+    ];
+
+    for (const mimeType of preferredMimeTypes) {
+      if (formats[mimeType]) {
+        return formats[mimeType];
+      }
+    }
+
+    const fallbackFormat = Object.values(formats)[0];
+    return fallbackFormat || null;
+  };
+
+  const getDownloadFileName = (book, downloadUrl) => {
+    if (!downloadUrl) return `${book.title || "book"}.pdf`;
+
+    const ext = downloadUrl.toLowerCase().endsWith(".pdf")
+      ? ".pdf"
+      : downloadUrl.toLowerCase().endsWith(".epub")
+        ? ".epub"
+        : downloadUrl.toLowerCase().endsWith(".txt")
+          ? ".txt"
+          : ".html";
+
+    return `${(book.title || "book").replace(/[^a-z0-9]+/gi, "_").toLowerCase()}${ext}`;
+  };
+
+  const handleSearch = async (e) => {
+    if (e) {
+      e.preventDefault();
+    }
+
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) {
+      setSearchResults([]);
+      setSearchError("");
+      return;
+    }
+
+    setIsLoading(true);
+    setSearchError("");
+
+    try {
+      const response = await fetch(
+        `https://gutendex.com/books?search=${encodeURIComponent(trimmedQuery)}&languages=en`
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.detail || "Unable to fetch books.");
+      }
+
+      setSearchResults(data.results || []);
+    } catch (error) {
+      setSearchError(error.message || "Unable to fetch books right now.");
+      setSearchResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
@@ -32,7 +110,7 @@ const Explore = () => {
               </button>
             </div>
 
-            <div className="mt-4">
+            <form onSubmit={handleSearch} className="mt-4 space-y-4">
               <input
                 type="text"
                 value={searchQuery}
@@ -40,7 +118,70 @@ const Explore = () => {
                 placeholder="search new books..."
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white"
               />
-            </div>
+
+              <button
+                type="submit"
+                className="w-full rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
+              >
+                Search books
+              </button>
+
+              <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+                {isLoading && <p className="text-sm text-gray-500">Searching books...</p>}
+                {searchError && <p className="text-sm text-red-500">{searchError}</p>}
+
+                {!isLoading && !searchError && searchResults.length === 0 && searchQuery.trim() && (
+                  <p className="text-sm text-gray-500">No books found for this search.</p>
+                )}
+
+                {searchResults.map((book) => {
+                  const coverUrl = getBestCoverUrl(book.formats || {});
+                  const downloadUrl = getBestDownloadUrl(book.formats || {});
+                  const downloadFileName = getDownloadFileName(book, downloadUrl);
+
+                  return (
+                    <div
+                      key={book.id}
+                      className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-3"
+                    >
+                      <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 text-center text-[10px] font-semibold text-blue-700">
+                        {coverUrl ? (
+                          <img
+                            src={coverUrl}
+                            alt={book.title}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span>{book.title}</span>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-gray-800">
+                          {book.title}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {book.authors?.[0]?.name || "Unknown author"}
+                        </p>
+                      </div>
+
+                      {downloadUrl && (
+                        <a
+                          href={downloadUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          download={downloadFileName}
+                          className="rounded-full bg-white p-2 text-blue-600 shadow-sm transition hover:text-blue-700"
+                          aria-label={`Download ${book.title}`}
+                        >
+                          <IoDownloadOutline size={18} />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </form>
           </div>
         </div>
       )}
