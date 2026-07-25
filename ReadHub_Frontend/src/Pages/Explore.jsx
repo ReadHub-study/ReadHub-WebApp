@@ -1,13 +1,50 @@
-import React from "react";
+import React, { useState } from "react";
 import { ReadHubImages } from "../assets/asset";
 import { useNavigate } from "react-router-dom";
 import { LuSearch } from "react-icons/lu";
+import { IoClose } from "react-icons/io5";
 
 const Explore = () => {
   const navigate = useNavigate();
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <>
+      {isSearchModalOpen && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+          onClick={() => setIsSearchModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-800">Search books</h3>
+              <button
+                type="button"
+                onClick={() => setIsSearchModalOpen(false)}
+                className="rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Close search modal"
+              >
+                <IoClose size={20} />
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="search new books..."
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="p-5 lg:py-5 lg:px-10 min-h-screen bg-gray-100">
         <div className="flex flex-col gap-1 justify-start items-start mt-10">
           <span className="text-3xl font-semibold">Explore</span>
@@ -54,7 +91,14 @@ const Explore = () => {
         <div className="flex flex-col justify-center gap-3.5 mt-12 w-full">
           <div className="flex flex-row justify-between items-center px-2">
             <span className="text-xl font-medium">Trending Books</span>
-            <span className="text-blue-600 text-2xl"><LuSearch/></span>
+            <button
+              type="button"
+              onClick={() => setIsSearchModalOpen(true)}
+              className="text-2xl text-blue-600"
+              aria-label="Open search"
+            >
+              <LuSearch />
+            </button>
           </div>
           <div className="cards grid grid-cols-3 justify-center gap-8 items-center w-full">
             <div>
