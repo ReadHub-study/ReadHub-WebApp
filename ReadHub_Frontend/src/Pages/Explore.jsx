@@ -1,13 +1,14 @@
 import React from "react";
 import { ReadHubImages } from "../assets/asset";
 import { useNavigate } from "react-router-dom";
+import { LuSearch } from "react-icons/lu";
 
 const Explore = () => {
   const navigate = useNavigate();
 
   return (
     <>
-      <div className="p-5 min-h-screen bg-gray-100">
+      <div className="p-5 lg:py-5 lg:px-10 min-h-screen bg-gray-100">
         <div className="flex flex-col gap-1 justify-start items-start mt-10">
           <span className="text-3xl font-semibold">Explore</span>
           <span className="text-sm font-normal text-gray-600">
@@ -50,30 +51,31 @@ const Explore = () => {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3.5 mt-7.5">
-          <div className="flex justify-start items-start">
+        <div className="flex flex-col justify-center gap-3.5 mt-12 w-full">
+          <div className="flex flex-row justify-between items-center px-2">
             <span className="text-xl font-medium">Trending Books</span>
+            <span className="text-blue-600 text-2xl"><LuSearch/></span>
           </div>
-          <div className="cards grid grid-cols-3 gap-2">
-            <span>
+          <div className="cards grid grid-cols-3 justify-center gap-8 items-center w-full">
+            <div>
               <img src={ReadHubImages.trendingbook1} alt="books" />
-            </span>
-            <span>
+            </div>
+            <div>
               <img src={ReadHubImages.trendingbook2} alt="books" />
-            </span>
-            <span>
+            </div>
+            <div>
               <img src={ReadHubImages.trendingbook3} alt="books" />
-            </span>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-2.5 justify-start items-start mt-7.5">
+        <div className="flex flex-col gap-2.5 justify-start items-start mt-9.5 lg:mt-14">
           <div>
             <span></span>
             <span className="text-lg font-medium">Reading Tips</span>
           </div>
-          <div className="cards flex flex-col gap-5 items-start justify-start">
-            <div className="card bg-white w-full p-4 rounded-xl flex justify-start items-start flex-row gap-4 border-gray-200 border-2">
+          <div className="cards flex flex-col gap-5 items-start justify-start w-full">
+            <div className="card bg-white w-full p-4 rounded-xl flex justify-start items-start flex-row gap-4 border-gray-200 border">
               <div className="p-3 rounded-lg flex justify-center items-center bg-blue-100">
                 <span>
                   <img src={ReadHubImages.timerIcon} alt="icon" />
@@ -88,7 +90,7 @@ const Explore = () => {
                 </span>
               </div>
             </div>
-            <div className="card bg-white w-full p-4 rounded-xl flex justify-start items-start flex-row gap-4 border-gray-200 border-2">
+            <div className="card bg-white w-full p-4 rounded-xl flex justify-start items-start flex-row gap-4 border-gray-200 border">
               <div className="p-3 rounded-lg flex justify-center items-center bg-blue-100">
                 <span>
                   <img src={ReadHubImages.blueCirclesIcon} alt="icon" />
@@ -101,7 +103,7 @@ const Explore = () => {
                 </span>
               </div>
             </div>
-            <div className="card bg-white w-full p-4 rounded-xl flex justify-start items-start flex-row gap-4 border-gray-200 border-2 mb-20">
+            <div className="card bg-white w-full p-4 rounded-xl flex justify-start items-start flex-row gap-4 border-gray-200 border mb-20">
               <div className="p-3 rounded-lg flex justify-center items-center bg-blue-200">
                 <span>
                   <img src={ReadHubImages.blueFlashIcon} alt="icon" />
