@@ -98,6 +98,7 @@ export const getAllNotes = async (req, res) => {
     return res.status(500).json({ message: error.message })
   }
 }
+// get note by id
 
 export const getNoteById = async (req, res) => {
   try {

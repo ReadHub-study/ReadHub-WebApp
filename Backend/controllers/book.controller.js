@@ -67,7 +67,7 @@ export const uploadBook = async (req, res) => {
       .json({ message: 'Book uploaded successfully', book: newBook })
   } catch (error) {
     console.error('Error uploading book:', error)
-    res.status(500).json({ message: `Error uploading book ${error.message}` })
+    res.status(500).json({ message: `Error uploading books ${error.message}` })
   }
 }
 
